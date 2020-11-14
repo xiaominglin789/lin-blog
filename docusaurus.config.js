@@ -23,7 +23,7 @@ module.exports = {
         },
         { to: 'blog', label: '博客', position: 'left' },
         {
-          href: 'https://github.com/apem789/lin-blog',
+          href: 'https://github.com/xiaominglin789/lin-blog',
           label: 'GitHub',
           position: 'right',
         },
@@ -86,12 +86,12 @@ module.exports = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
-          editUrl: 'https://github.com/apem789/docs',
+          editUrl: 'https://github.com/xiaominglin789/',
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
-          editUrl: 'https://github.com/apem789/lin-blog',
+          editUrl: 'https://github.com/xiaominglin789/lin-blog',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),

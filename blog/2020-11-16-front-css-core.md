@@ -2,9 +2,9 @@
 slug: front-css-core
 title: 前端-css-基础
 author: Lin
-author_title: apem789
-author_url: https://github.com/apem789
-author_image_url: https://himg.bdimg.com/sys/portrait/item/642de68993e59da63535359f30.jpg
+author_title: xiaominglin789
+author_url: https://github.com/xiaominglin789/lin-blog
+author_image_url: https://avatars0.githubusercontent.com/u/74356262?s=400&v=4
 tags: [前端, 基础, css]
 ---
 
