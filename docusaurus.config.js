@@ -50,15 +50,15 @@ module.exports = {
           items: [
             {
               label: '微信',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              href: '#',
             },
             {
-              label: '邮箱',
-              href: 'https://discordapp.com/invite/docusaurus',
+              label: 'qq邮箱: 319284737@qq.com',
+              href: 'https://email.qq.com',
             },
             {
-              label: 'GitHub',
-              href: 'https://github.com/apem789',
+              label: 'gmail: xiaominglin789@gmail.com',
+              href: 'https://mail.google.com',
             },
           ],
         },
@@ -71,7 +71,7 @@ module.exports = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/apem789',
+              href: 'https://github.com/xiaominglin789',
             },
           ],
         },
