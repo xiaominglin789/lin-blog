@@ -58,7 +58,8 @@ function Home() {
   return (
     <Layout
       title={`欢迎来到 ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      description="Description will go into a meta tag in <head />"
+    >
       <header className={clsx('hero hero--primary', styles.heroBanner)}>
         <div className="container">
           <h1 className="hero__title">{siteConfig.title}</h1>
@@ -69,13 +70,28 @@ function Home() {
                 'button button--outline button--secondary button--lg',
                 styles.getStarted,
               )}
-              to={useBaseUrl('blog/')}>
+              to={useBaseUrl('blog/')}
+            >
               查看博客
             </Link>
           </div>
         </div>
       </header>
       <main>
+        <div className={styles.reports}>
+          <div>
+            <h3>未来: </h3>
+            <div>js数据结构与算法</div>
+            <div>js设计模式</div>
+            <div>node.js</div>
+          </div>
+          <div>
+            <h3>最近在折腾: </h3>
+            <div>2020-11-18 html+css 练习</div>
+            <div>2080-11-12 js基础巩固</div>
+            <div>2080-11-12 js基础巩固</div>
+          </div>
+        </div>
         {features && features.length > 0 && (
           <section className={styles.features}>
             <div className="container">
@@ -89,7 +105,7 @@ function Home() {
         )}
       </main>
     </Layout>
-  );
+  )
 }
 
 export default Home;
