@@ -13,12 +13,14 @@ const features = [
     imageUrl: 'img/undraw_docusaurus_mountain.svg',
     description: (
       <>
-        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604986666206&di=593728b635cbe15af37066206388e347&imgtype=0&src=http%3A%2F%2Fc-ssl.duitang.com%2Fuploads%2Fitem%2F202003%2F15%2F20200315170821_4VTj3.thumb.400_0.gif"></img>
+        {/* <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604986666206&di=593728b635cbe15af37066206388e347&imgtype=0&src=http%3A%2F%2Fc-ssl.duitang.com%2Fuploads%2Fitem%2F202003%2F15%2F20200315170821_4VTj3.thumb.400_0.gif"></img> */}
+        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604985970298&di=13cba79306929239772783fa36ef6223&imgtype=0&src=http%3A%2F%2F08imgmini.eastday.com%2Fmobile%2F20191027%2F20191027231946_f469fc159669a5abd2469a7aaff897d8_4.gif"></img>
+        {/* <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1606723906489&di=129b366815c48e877304062a95a14468&imgtype=0&src=http%3A%2F%2Fn.sinaimg.cn%2Fsinacn17%2F503%2Fw250h253%2F20180403%2F515d-fysuuya1261512.gif"></img> */}
       </>
     ),
   },
   {
-    title: '猫狗大战',
+    title: '猫狗大战(Cat and dog war)',
     imageUrl: 'img/undraw_docusaurus_tree.svg',
     description: (
       <>
@@ -26,9 +28,8 @@ const features = [
       </>
     ),
   },
-  /** https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604985970298&di=13cba79306929239772783fa36ef6223&imgtype=0&src=http%3A%2F%2F08imgmini.eastday.com%2Fmobile%2F20191027%2F20191027231946_f469fc159669a5abd2469a7aaff897d8_4.gif */
   {
-    title: '猫虾大战',
+    title: '猫虾大战(Cat and shrimp war)',
     imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>

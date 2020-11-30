@@ -49,6 +49,7 @@
   padding: 8px;
   cursor: pointer;
   border: 1px solid #333;
+  border-radius: 8px;
 }
 .reports >div:hover {
   align-self: stretch;
