@@ -54,6 +54,7 @@ function Feature({imageUrl, title, description}) {
 
 function Home() {
   const context = useDocusaurusContext();
+  console.log(context)
   const {siteConfig = {}} = context;
   return (
     <Layout

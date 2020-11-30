@@ -16,12 +16,31 @@ module.exports = {
       },
       items: [
         {
+          to: 'blog',
+          label: '博客',
+          position: 'left',
+        },
+        {
+          label: '前端',
+          to: 'blog/tags/front',
+          position: 'left',
+        },
+        {
+          label: '后端',
+          to: 'blog/tags/back',
+          position: 'left',
+        },
+        {
+          label: '相关',
+          to: 'blog/tags/other',
+          position: 'left',
+        },
+        {
           to: 'docs/',
           activeBasePath: 'docs',
-          label: '其他',
+          label: '文档',
           position: 'right',
         },
-        { to: 'blog', label: '博客', position: 'left' },
         {
           href: 'https://github.com/xiaominglin789/lin-blog',
           label: 'GitHub',
@@ -36,11 +55,11 @@ module.exports = {
           title: '关联',
           items: [
             {
-              label: '其他',
-              to: 'docs/',
+              label: '博客',
+              to: 'blog/',
             },
             {
-              label: '无关',
+              label: '文档',
               to: 'docs/doc2/',
             },
           ],

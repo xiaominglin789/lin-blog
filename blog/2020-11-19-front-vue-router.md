@@ -4,12 +4,24 @@ title: 2020-11-11-前端-vue 路由详解
 author: Lin
 author_title: xiaominglin789
 author_url: https://github.com/xiaominglin789/lin-blog
-author_image_url: https://avatars0.githubusercontent.com/u/74356262?s=400&v=4
-tags: [前端, ]
+author_image_url: https://avatars2.githubusercontent.com/u/74356262?s=400&u=51bc963a308dd3748ba5133c9cfd29eb3bc0c207&v=4
+tags: [front, vue, router]
 ---
 
 ## vue-router 4.0 路由基础
 [vue-router](https://next.router.vuejs.org/)
+Vue Router 是 Vue.js 官方的路由管理器。它和 Vue.js 的核心深度集成，让构建单页面应用变得易如反掌。
++ 创建路由
++ 添加新的路由配置项
++ 删除现有的路由项
++ 动态路由与404的匹配
++ createRouter 可以设置3种路由模式
++ 全局路由守卫
++ 组件内的路由守卫API
++ 组件缓存、路由动画效果
+
+
+<!--truncate-->
 
 
 ## 创建路由
@@ -37,7 +49,6 @@ const router = createRouter({
 })
 export default router
 ```
-
 
 ## addRoute() 添加新的路由配置项
 一般用于：后端返回动态路由配置数据,前端根据数据渲染对应路由配置的需求
