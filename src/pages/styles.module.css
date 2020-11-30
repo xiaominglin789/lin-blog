@@ -32,18 +32,24 @@
 }
 
 .featureImage {
-  height: 200px;
+  height: 180px;
   width: 200px;
 }
 
 .reports {
   width: 100vw;
-  height: 200px;
+  height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 .reports >div {
-  padding: 10px;
+  margin: 16px;
+  padding: 8px;
+  cursor: pointer;
+  border: 1px solid #333;
+}
+.reports >div:hover {
+  align-self: stretch;
 }

@@ -18,20 +18,21 @@ const features = [
     ),
   },
   {
-    title: '猫',
+    title: '猫狗大战',
     imageUrl: 'img/undraw_docusaurus_tree.svg',
     description: (
       <>
-        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604987275210&di=41db7e2ae994fee6b628d98189e502c6&imgtype=0&src=http%3A%2F%2Fc-ssl.duitang.com%2Fuploads%2Fitem%2F201808%2F21%2F20180821092739_tRwUZ.thumb.700_0.gif"></img>
+        <img src="http://pic.ik123.com/uploads/allimg/180723/12-1PH3145639.gif"></img>
       </>
     ),
   },
+  /** https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604985970298&di=13cba79306929239772783fa36ef6223&imgtype=0&src=http%3A%2F%2F08imgmini.eastday.com%2Fmobile%2F20191027%2F20191027231946_f469fc159669a5abd2469a7aaff897d8_4.gif */
   {
-    title: '生活',
+    title: '猫虾大战',
     imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>
-        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604985970298&di=13cba79306929239772783fa36ef6223&imgtype=0&src=http%3A%2F%2F08imgmini.eastday.com%2Fmobile%2F20191027%2F20191027231946_f469fc159669a5abd2469a7aaff897d8_4.gif"></img>
+        <img src="http://pic.ik123.com/uploads/allimg/180723/12-1PH3145641.gif"></img>
       </>
     ),
   },
@@ -61,6 +62,7 @@ function Home() {
       title={`欢迎来到 ${siteConfig.title}`}
       description="Description will go into a meta tag in <head />"
     >
+      {/* header */}
       <header className={clsx('hero hero--primary', styles.heroBanner)}>
         <div className="container">
           <h1 className="hero__title">{siteConfig.title}</h1>
@@ -78,19 +80,20 @@ function Home() {
           </div>
         </div>
       </header>
+      {/* 当前在干嘛,未来计划 */}
       <main>
         <div className={styles.reports}>
           <div>
             <h3>未来: </h3>
-            <div>js数据结构与算法</div>
-            <div>js设计模式</div>
-            <div>node.js</div>
+            <div>2021-02-10 js设计模式</div>
+            <div>2021-02-20 js数据结构与算法</div>
+            <div>2021-02-27 node.js知识巩固</div>
           </div>
           <div>
             <h3>最近在折腾: </h3>
-            <div>2020-11-18 html+css 练习</div>
-            <div>2080-11-12 js基础巩固</div>
-            <div>2080-11-12 js基础巩固</div>
+            <div>2020-12-18 html+css 练习</div>
+            <div>2080-12-12 js基础巩固</div>
+            <div>2080-12-07 js基础巩固</div>
           </div>
         </div>
         {features && features.length > 0 && (

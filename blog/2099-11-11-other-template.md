@@ -1,6 +1,6 @@
 ---
-slug: welcome
-title: 欢迎
+slug: other
+title: 其他类目的博客模板
 author: Lin
 author_title: xiaominglin789
 author_url: https://github.com/xiaominglin789/lin-blog
@@ -9,7 +9,3 @@ tags: [other, template]
 ---
 
 ## 目录
-
-
-<!--truncate-->
-
