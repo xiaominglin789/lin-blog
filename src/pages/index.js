@@ -13,27 +13,26 @@ const features = [
     imageUrl: 'img/undraw_docusaurus_mountain.svg',
     description: (
       <>
-        {/* <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604986666206&di=593728b635cbe15af37066206388e347&imgtype=0&src=http%3A%2F%2Fc-ssl.duitang.com%2Fuploads%2Fitem%2F202003%2F15%2F20200315170821_4VTj3.thumb.400_0.gif"></img> */}
-        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604985970298&di=13cba79306929239772783fa36ef6223&imgtype=0&src=http%3A%2F%2F08imgmini.eastday.com%2Fmobile%2F20191027%2F20191027231946_f469fc159669a5abd2469a7aaff897d8_4.gif"></img>
-        {/* <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1606723906489&di=129b366815c48e877304062a95a14468&imgtype=0&src=http%3A%2F%2Fn.sinaimg.cn%2Fsinacn17%2F503%2Fw250h253%2F20180403%2F515d-fysuuya1261512.gif"></img> */}
+        {/*https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1604985970298&di=13cba79306929239772783fa36ef6223&imgtype=0&src=http%3A%2F%2F08imgmini.eastday.com%2Fmobile%2F20191027%2F20191027231946_f469fc159669a5abd2469a7aaff897d8_4.gif*/}
+        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1608113235265&di=68add62afd52830943a1786c4fe6a232&imgtype=0&src=http%3A%2F%2Fwww.17qq.com%2Fimg_biaoqing%2F74400177.jpeg"></img>
       </>
     ),
   },
   {
-    title: '猫狗大战(Cat and dog war)',
+    title: '我是舔狗? 喵~',
     imageUrl: 'img/undraw_docusaurus_tree.svg',
     description: (
       <>
-        <img src="http://pic.ik123.com/uploads/allimg/180723/12-1PH3145639.gif"></img>
+        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1608113235298&di=682a4040e83412f4eb37e08ed216c4f9&imgtype=0&src=http%3A%2F%2Fb-ssl.duitang.com%2Fuploads%2Fitem%2F201901%2F21%2F20190121043748_hdooq.thumb.400_0.gif"></img>
       </>
     ),
   },
   {
-    title: '猫虾大战(Cat and shrimp war)',
+    title: '放我过去!',
     imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>
-        <img src="http://pic.ik123.com/uploads/allimg/180723/12-1PH3145641.gif"></img>
+        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1608113235299&di=e705623b8178bb114dff709a01b09759&imgtype=0&src=http%3A%2F%2Fww2.sinaimg.cn%2Flarge%2F85cc5ccbgy1ffngdgcowag208c0cckjl.jpg"></img>
       </>
     ),
   },
@@ -85,16 +84,18 @@ function Home() {
       <main>
         <div className={styles.reports}>
           <div>
-            <h3>未来: </h3>
-            <div>2021-02-10 js设计模式</div>
-            <div>2021-02-20 js数据结构与算法</div>
-            <div>2021-02-27 node.js知识巩固</div>
+            <h3>前端</h3>
+            <div>1.javascript 基础巩固</div>
+            <div>2.typescript 上手</div>
+            <div>3.前端框架练手：vue 、angulur、react</div>
+            <div>4.nest.js 项目练习</div>
           </div>
           <div>
-            <h3>最近在折腾: </h3>
-            <div>2020-12-18 html+css 练习</div>
-            <div>2080-12-12 js基础巩固</div>
-            <div>2080-12-07 js基础巩固</div>
+            <h3>后端 </h3>
+            <div>1.java 基础学习</div>
+            <div>2.mysql 练习</div>
+            <div>3.redis 练习</div>
+            <div>4.spring boot 项目练习</div>
           </div>
         </div>
         {features && features.length > 0 && (
