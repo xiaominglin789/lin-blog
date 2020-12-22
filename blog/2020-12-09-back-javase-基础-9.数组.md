@@ -1,11 +1,11 @@
 ---
-slug: back-template
+slug: JavaSE基础-9.数组
 title: JavaSE基础-9.数组
 author: Lin
 author_title: xiaominglin789
 author_url: https://github.com/xiaominglin789/lin-blog
 author_image_url: https://avatars2.githubusercontent.com/u/74356262?s=400&u=51bc963a308dd3748ba5133c9cfd29eb3bc0c207&v=4
-tags: [back, java, JavaSE, 基础]
+tags: [back, java, javase, 基础]
 ---
 
 ## 数组
@@ -211,7 +211,7 @@ for (int i=0; i < arr.length; i++) {
 
 
 ##### 稀疏数组: 压缩二维数组
-- 条件: 二维数组中很多值是默认值`0`
+- 条件: 二维数组中很多值是默认值`0`,或同一个值。
 - 压缩: 让二维数组体积小
 ```java
 int[][] dish = new int[11][11];
