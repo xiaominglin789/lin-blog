@@ -250,7 +250,7 @@ function accAdd(arg1,arg2){
 - 字符串全大写-返回全大写的：String.toUpperCase()
 	
 	- exp: var str = 'aBcdEF'; str.toUpperCase() = 'ABCDEF'
-- 字符串全小写-返回全大写的：String.toLowerCase()
+- 字符串全小写-返回全小写的：String.toLowerCase()
 	
 	- exp: var str = 'aBcdEF'; str.toLowerCase() = 'abcdef'
 ```javascript

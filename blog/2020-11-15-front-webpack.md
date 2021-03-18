@@ -32,7 +32,8 @@ tags: [front, webpack]
 ## 兼容的webpack package.json 依赖版本参考一
 ```javascript
 {
-  "script": {
+  ...
+  "scripts": {
 	"dev": "webpack-dev-server",
     "build": "webpack"
   },
@@ -63,9 +64,11 @@ tags: [front, webpack]
 
 
 ## 兼容的webpack package.json 依赖版本参考二
+遇到有些依赖安装失败？请用`cnpm`吧
 ```
 {
-  "script": {
+  ...
+  "scripts": {
 	"dev": "webpack-dev-server",
     "build": "webpack"
   },
@@ -80,7 +83,7 @@ tags: [front, webpack]
     "ejs-loader": "^0.5.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^4.5.0",
-    "image-webpack-loader": "^",
+    "image-webpack-loader": "^4.6.0",
     "mini-css-extract-plugin": "^0.7.0",
     "node-sass": "^5.0.0",
     "postcss-loader": "^4.0.4",
