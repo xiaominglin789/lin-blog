@@ -29,68 +29,37 @@ tags: [front, webpack]
 <!--truncate-->
 
 
-## 兼容的webpack package.json 依赖版本参考一
+## webpack 方案一: 
+- webpack4
+- 已经解决依赖的问题, 请优先用 cnpm 安装依赖
 ```javascript
 {
   ...
   "scripts": {
-	"dev": "webpack-dev-server",
-    "build": "webpack"
+    "dev": "webpack-dev-server",
+    "serve": "cross-env NODE_ENV=development webpack-dev-server --host localhost --content-base dist/ --hot --watch-cli --config webpack.config.js --progress --display-modules --colors --display-reasons",
+    "build": "cross-env NODE_ENV=production webpack --config webpack.config.js"
   },
   "devDependencies": {
-    "autoprefixer": "^10.0.1",
+    "autoprefixer": "^9.5.1",
     "babel-core": "^6.26.3",
     "babel-loader": "^7.1.5",
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-latest": "^6.24.1",
-    "css-loader": "^5.0.1",
+    "cross-env": "^7.0.3",
+    "css-loader": "^2.1.1",
     "ejs": "^3.1.5",
     "ejs-loader": "^0.5.0",
-    "file-loader": "^6.2.0",
-    "html-webpack-plugin": "^4.5.0",
-    "mini-css-extract-plugin": "^0.7.0",
-    "node-sass": "^5.0.0",
-    "postcss-loader": "^4.0.4",
-    "sass-loader": "^10.0.5",
-    "style-loader": "^2.0.0",
-    "uglifyjs-webpack-plugin": "^2.2.0",
-    "url-loader": "^4.1.1",
-    "webpack": "^4.30.0",
-    "webpack-cli": "^3.3.0",
-    "webpack-dev-server": "^3.7.2"
-  }
-}
-```
-
-
-## 兼容的webpack package.json 依赖版本参考二
-遇到有些依赖安装失败？请用`cnpm`吧
-```
-{
-  ...
-  "scripts": {
-	"dev": "webpack-dev-server",
-    "build": "webpack"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.12.3",
-    "autoprefixer": "^10.0.1",
-    "babel-loader": "^8.2.0",
-    "babel-plugin-transform-runtime": "^6.23.0",
-    "babel-preset-latest": "^6.24.1",
-    "css-loader": "^5.0.1",
-    "ejs": "^3.1.5",
-    "ejs-loader": "^0.5.0",
-    "file-loader": "^6.2.0",
-    "html-webpack-plugin": "^4.5.0",
+    "file-loader": "^3.0.1",
+    "html-webpack-plugin": "^3.2.0",
     "image-webpack-loader": "^4.6.0",
     "mini-css-extract-plugin": "^0.7.0",
-    "node-sass": "^5.0.0",
-    "postcss-loader": "^4.0.4",
-    "sass-loader": "^10.0.5",
-    "style-loader": "^2.0.0",
-    "uglifyjs-webpack-plugin": "^2.2.0",
-    "url-loader": "^4.1.1",
+    "node-sass": "^4.11.1",
+    "postcss-loader": "^3.0.0",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.1",
+    "uglifyjs-webpack-plugin": "^2.1.2",
+    "url-loader": "^1.1.2",
     "webpack": "^4.30.0",
     "webpack-cli": "^3.3.0",
     "webpack-dev-server": "^3.7.2"
@@ -98,8 +67,7 @@ tags: [front, webpack]
 }
 ```
 
-
-## webpack 4 配置模板  wepack.config.js
+##### webpack 4 配置模板  wepack.config.js
 ```javascript
 const path = require('path')
 const uglify = require('uglifyjs-webpack-plugin')
@@ -226,13 +194,18 @@ module.exports = {
 	},
 }
 ```
-cnpm install --save-dev image-webpack-loader
+
+
+
+## webpack方案二
+
+
 
 
 ## webpack 5 配置变更
 
 
-## 场景版本兼容问题汇总
+## 兼容问题事项:
 ```bash
 babel-loader 8.x 对应 babel-core 7.x
 使用 @babel/core
