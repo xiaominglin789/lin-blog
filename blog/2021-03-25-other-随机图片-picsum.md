@@ -13,6 +13,9 @@ tags: [other, picsum]
 - 请求地址: https://picsum.photos
 
 
+<!--truncate-->
+
+
 ## path可选参数-控制图片大小
 https://picsum.photos/200/300
 query可选参数-?

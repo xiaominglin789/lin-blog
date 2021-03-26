@@ -8,6 +8,11 @@ author_image_url: https://avatars2.githubusercontent.com/u/74356262?s=400&u=51bc
 tags: [front, http]
 ---
 
+## HTTP网络知识
+
+
+<!--truncate-->
+
 
 ## 经典面试题: 浏览器请求一个网页的流程
 - 1.在浏览器输入域名 -> 通过DNS解析,获取相应的ip地址
