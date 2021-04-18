@@ -290,7 +290,7 @@ temp = null
 
 
 ##### 4. Undefined 未定义
-undefined 属性用于存放 JavaScript 的 undefined 值。
+Undefined 属性用于存放 JavaScript 的 undefined 值。
 
 > undefined的几种情况
 >
@@ -388,11 +388,12 @@ const obj = {
 	age: 27
 }
 
-# 定义二
+# 定义二 
+合并法：会将 第二个对象的属性合并到 第一个数组中。
 const obj5 = Object.assign({}, { name:'1236' })
 
 # 定义三(不建议如此定义)
-let obj = new Object() // 或 Object.create({}s)
+let obj = new Object() // 或 Object.create({})
 obj.name = 'apem'
 obj.age = 27
 
