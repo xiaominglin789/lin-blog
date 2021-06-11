@@ -85,7 +85,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io
 
 
 
-### 6.docker基本操作
+### 4.docker基本操作
 - 查看镜像: sudo docker images
 - 下载镜像: sudo docker pull 镜像名:版本
 - 生成容器并运行: sudo docker run 镜像名
@@ -113,10 +113,10 @@ sudo curl -L "https://github.com/docker/compose/releases/download/1.28.6/docker-
 #配置权限
 sudo chmod +x /usr/local/bin/docker-compose
 ```
-- 新建镜像、创建容器并后台: docker-compose up -d docker-compose.yml
-- 删除容器: docker-compose down 容器名
-- docker-compose start 容器名
-- docker-compose stop 容器名
+- 新建镜像、创建容器并后台: docker-compose -f [yml配置文件] up -d 
+- 移除所有容器以及网络相关: docker-compose down
+- 运行容器: docker-compose start 容器名
+- 暂停容器: docker-compose stop 容器名
 
 
 
@@ -125,40 +125,106 @@ sudo chmod +x /usr/local/bin/docker-compose
 
 
 ### 6.安装redis、mysql、postgresql
-- redis.yml
-- mysql8.yml
+- redis.yml 配置 本地redis
+版本: 6 端口：6379
+  + 1.`vim /opt/redis/conf/redis.conf` -> 配置密码 -> apem@159.com
+  + 2.启动命令`command`添加登录密码: `--requirepass apem@159.com --appendonly yes`
+```bash
+version: "3"
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - /opt/redis/data:/data
+      - /opt/redis/conf/redis.conf:/etc/redis/redis.conf
+    privileged: true
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=en_US.UTF-8
+    #覆盖容器启动的redis.conf
+    command: redis-server --requirepass apem@159.com --appendonly yes
+```
+
+- mysql8.yml 配置
 版本:8 端口: 3306
 ```bash
 version: "3"
+ 
 services:
-  postgres:
-    image: mysql:8
+  mysql8:
+    # 镜像名
+    image: mysql:8.0.25
+    # 容器名(以后的控制都通过这个)
+    container_name: mysql8
+    # 重启策略
     restart: always
+    environment:
+      # 时区上海
+      TZ: Asia/Shanghai
+      # root 密码
+      MYSQL_ROOT_PASSWORD: root
+      # 初始化数据库(后续的初始化sql会在这个库执行)
+      MYSQL_DATABASE: pay-demo
+      # 初始化用户(不能是root 会报错, 后续需要给新用户赋予权限)
+      MYSQL_USER: apem159
+      # 用户密码
+      MYSQL_PASSWORD: apem@159.com
+      # 映射端口
     ports:
       - 3306:3306
-    environment:
-      - POSTGRES_PASSWORD=apem@159
+    volumes:
+      # 数据挂载
+      - /opt/mysql8/data/:/var/lib/mysql/
+      # 配置挂载
+      - /opt/mysql8/conf/:/etc/mysql/conf.d/
+      # 初始化目录挂载
+      - /opt/mysql8/init/:/docker-entrypoint-initdb.d/
+    command:
+      # 将mysql8.0默认密码策略 修改为 原先 策略 (mysql8.0对其默认策略做了更改 会导致密码无法匹配)
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --explicit_defaults_for_timestamp=true
+      --lower_case_table_names=1
+```
+生成新的账号密码并授权
+```bash
+# 查找mysql8容器id
+sudo docker ps
+sudo docker exec -it  [容器id]  /bin/bash
+# 初始账号、密码: MYSQL_USER、MYSQL_PASSWORD
+:/# mysql -u[账号-MYSQL_USER] -p
+# 可生成新的账号密码，授权
 ```
 
-- postgresql.yml
+- postgresql.yml 配置
 postgre端口: 5432, admin: localhost:7070
 ```bash
 version: "3"
 services:
   postgres:
     image: "bitnami/postgresql:latest"
+    container_name: "postgresql"
     restart: always
     ports:
       - 5432:5432
+    volumes:
+      - /opt/postgres:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=apem@159
     networks:
       - app-tier
-  admin:
+  pgadmin:
     image: "dpage/pgadmin4:latest"
+    container_name: "pgadmin"
     restart: always
     ports:
-      - 7070:7070
+      - 7070:80
     depends_on:
       - postgres
     environment:
