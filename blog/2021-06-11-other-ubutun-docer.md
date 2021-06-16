@@ -150,57 +150,68 @@ services:
     command: redis-server --requirepass apem@159.com --appendonly yes
 ```
 
+
 - mysql8.yml 配置
 版本:8 端口: 3306
+-it => 进入容器后可通过`mysql -u root -p [MYSQL_ROOT_PASSWORD]` 登录,才有操作权限,可以
+新建管理员赋予操作权限 或 给 `MYSQL_USER + MYSQL_PASSWORD` 操作权限
+- 注意: yml environment 配置下 请使用 `- key=value` 的元组形式。这里使用`map的表达形式`有个坑: `MYSQL_ROOT_PASSWORD: 123456`  设置不成功的， 导致使用root账号密码无法登录数据库...
 ```bash
 version: "3"
- 
+
 services:
   mysql8:
     # 镜像名
-    image: mysql:8.0.25
+    image: mysql:8
     # 容器名(以后的控制都通过这个)
     container_name: mysql8
     # 重启策略
     restart: always
     environment:
       # 时区上海
-      TZ: Asia/Shanghai
-      # root 密码
-      MYSQL_ROOT_PASSWORD: root
+      - TZ=Asia/Shanghai
+      # root用户的密码
+      - MYSQL_ROOT_PASSWORD=123456
       # 初始化数据库(后续的初始化sql会在这个库执行)
-      MYSQL_DATABASE: pay-demo
-      # 初始化用户(不能是root 会报错, 后续需要给新用户赋予权限)
-      MYSQL_USER: apem159
-      # 用户密码
-      MYSQL_PASSWORD: apem@159.com
-      # 映射端口
+      - MYSQL_DATABASE=pay-demo
+      # 初始化临时用户(临时新用户没有什么权限的账号)
+      - MYSQL_USER=mysql
+      # 初始化临时用户密码
+      - MYSQL_PASSWORD=123456
+
     ports:
       - 3306:3306
+    networks:
+      - app-mysql
     volumes:
       # 数据挂载
-      - /opt/mysql8/data/:/var/lib/mysql/
+      - /opt/mysql8/data:/var/lib/mysql
       # 配置挂载
-      - /opt/mysql8/conf/:/etc/mysql/conf.d/
+      - /opt/mysql8/conf:/etc/mysql/conf.d
       # 初始化目录挂载
-      - /opt/mysql8/init/:/docker-entrypoint-initdb.d/
+      - /opt/mysql8/init:/docker-entrypoint-initdb.d
     command:
-      # 将mysql8.0默认密码策略 修改为 原先 策略 (mysql8.0对其默认策略做了更改 会导致密码无法匹配)
+      # 将mysql8.0默认密码策略 修改为 原先 策略 (mysql8.0对其默认策略做了更改会导致密码无法匹配)
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_general_ci
       --explicit_defaults_for_timestamp=true
       --lower_case_table_names=1
+
+networks:
+  app-mysql:
+    driver: bridge
 ```
-生成新的账号密码并授权
-```bash
-# 查找mysql8容器id
+- root账号登录mysql, 新建用户, 赋予权限, web应用-远程连接才能成功.
+- 创建新用户: `create user 'apem789'@'%' identified by 'apem@159.com';`
+- 赋予权限: `grant all privileges on *.* to 'apem789'@'%' with grant option;`
+- 刷新生效: `flush privileges;`
+
+# 查找mysql8容器id, 进入容器内操作
 sudo docker ps
 sudo docker exec -it  [容器id]  /bin/bash
-# 初始账号、密码: MYSQL_USER、MYSQL_PASSWORD
-:/# mysql -u[账号-MYSQL_USER] -p
-# 可生成新的账号密码，授权
 ```
+
 
 - postgresql.yml 配置
 postgre端口: 5432, admin: localhost:7070
