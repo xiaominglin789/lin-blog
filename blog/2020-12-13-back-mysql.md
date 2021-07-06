@@ -2560,33 +2560,266 @@ mysql> select dept.deptno,dname,empname,job from emp right join dept on dept.dep
 ## mysql约束
 约束: 用于确保数据库的数据 满足特定的商业规则规范
 #### 主键：primary key
+- 主键列的值不能重复，而且不能为空
+- 一张表只能有一个主键、但可以是复合主键
+- 主键的指定方式有2种
+	+ 直接在字段后指定: 字段名 primary key
+	+ 在表的最后写: primary key(列名1,列名2)
+- 使用desc 表名.可以看到 primary key 的情况
+- 实际开发中，往往都会设计一个主键。
+```bash
+# 创建表-设置主键
+mysql> create table if not exists t06(id int primary key,`name` varchar(20),email varchar(32)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
+Query OK, 0 rows affected (0.03 sec)
 
+mysql> desc t06;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| id    | int         | NO   | PRI | NULL    |       |
+| name  | varchar(20) | YES  |     | NULL    |       |
+| email | varchar(32) | YES  |     | NULL    |       |
++-------+-------------+------+-----+---------+-------+
+3 rows in set (0.00 sec)
 
+# 主键列的值不能重复，而且不能为空
+mysql> insert into t06 values(1,'jack','jack@163.com'),(2,'tom','tom@163.com');
+mysql> select * from t06;
++----+------+--------------+
+| id | name | email        |
++----+------+--------------+
+|  1 | jack | jack@163.com |
+|  2 | tom  | tom@163.com  |
++----+------+--------------+
+2 rows in set (0.00 sec)
 
-#### 唯一：unique
+mysql> insert into t06 values(1,'jack','jack@163.com');
+ERROR 1062 (23000): Duplicate entry '1' for key 't06.PRIMARY'
 
+mysql> insert into t06 values(NULL,'jack','jack@163.com');
+ERROR 1048 (23000): Column 'id' cannot be null
+
+# 一张表只能有一个主键、但可以是复合主键
+mysql> create table if not exists t07(id int primary key,`name` varchar(20) primary key,email varchar(32)) 
+ERROR 1068 (42000): Multiple primary key defined
+
+mysql> create table if not exists t07(id int,`name` varchar(20),email varchar(32),primary key(`id`,`name`,`email`)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> desc t07;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| id    | int         | NO   | PRI | NULL    |       |
+| name  | varchar(20) | NO   | PRI | NULL    |       |
+| email | varchar(32) | NO   | PRI | NULL    |       |
++-------+-------------+------+-----+---------+-------+
+3 rows in set (0.01 sec)
+
+```
 
 
 #### 非空：not null
+不能插入空值,必须提供数据。
+
+
+#### 唯一：unique
+当定义了唯一约束后, 该列的值是不能重复的
+- 没有设置 not null 时，可以插入成功的,而且可以重复插入多个 `NULL`
+- 如果一个列(字段), 设置 unique not null => 效率类似 primary key
+- 一张表 可以有 多个 unique 约束
+```bash
+mysql> create table if not exists t07 like t06;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> alter table t07 drop primary key;
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table t07 modify `id` int unique;
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> desc t07;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| id    | int         | YES  | UNI | NULL    |       |
+| name  | varchar(20) | NO   |     | NULL    |       |
+| email | varchar(32) | NO   |     | NULL    |       |
++-------+-------------+------+-----+---------+-------+
+3 rows in set (0.01 sec)
+
+mysql> insert into t07 values(NULL,'jack','jack@163.com');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> insert into t07 values(1,'jack','jack@163.com');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> insert into t07 values(2,'jack','jack@163.com');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select * from t07;
++------+------+--------------+
+| id   | name | email        |
++------+------+--------------+
+| NULL | jack | jack@163.com |
+|    1 | jack | jack@163.com |
+|    2 | jack | jack@163.com |
++------+------+--------------+
+3 rows in set (0.00 sec)
+
+# 再次插入 '2' 号记录,报错
+mysql> insert into t07 values(2,'jack','jack@163.com');
+ERROR 1062 (23000): Duplicate entry '2' for key 't07.id'
+
+```
+
+
+#### 外键：foreign key (从表-外键列) references 主表(主表-主键列/unique列)
+用于定义 主表 和 从表 之间的关系。
+- `外键约束` 要定义在 `从表` 上
+- 主表则必须具有: `主键约束` 或 `unique约束`
+- 外键关系确定后, 外键列的数据必须在 `主表` 的主键/unique列存在 或 `为null`
+- 当存在外键关系时,如果想要删除`主表`,要先删除`从表`先。否则报错: 'ERROR 3730 (HY000): Cannot drop table 'my_class' referenced by a foreign key constraint 'my_stu_ibfk_1' on table 'my_stu'.
+- 同理,删除主键记录时,如果存在从表的`外键约束`, 也会报错。需要 `关闭外键约束`、删除记录后再 开启 `外键约束`
+'
+```bash
+# 先建 主表
+mysql> create table if not exists `my_class`(id int primary key,`name` varchar(32) not null default '') engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 3 warnings (0.01 sec)
+
+mysql> desc my_class;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| id    | int         | NO   | PRI | NULL    |       |
+| name  | varchar(32) | NO   |     |         |       |
++-------+-------------+------+-----+---------+-------+
+2 rows in set (0.00 sec)
+
+# 从表、外键是: class_id
+mysql> create table if not exists `my_stu`(id int primary key,`name` varchar(32) not null default '', class_id int,foreign key (`class_id`) references `my_class`(`id`)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> desc my_stu;
++----------+-------------+------+-----+---------+-------+
+| Field    | Type        | Null | Key | Default | Extra |
++----------+-------------+------+-----+---------+-------+
+| id       | int         | NO   | PRI | NULL    |       |
+| name     | varchar(32) | NO   |     |         |       |
+| class_id | int         | YES  | MUL | NULL    |       |
++----------+-------------+------+-----+---------+-------+
+3 rows in set (0.01 sec)
+
+mysql> insert into `my_class` values(100,'java'),(200,'javascript');
+Query OK, 2 rows affected (0.01 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+mysql> select * from my_class;
++-----+------------+
+| id  | name       |
++-----+------------+
+| 100 | java       |
+| 200 | javascript |
++-----+------------+
+2 rows in set (0.00 sec)
+
+mysql> insert into my_stu values(1,'tom',100),(2,'jack',200);
+Query OK, 2 rows affected (0.01 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+mysql> select * from my_stu;
++----+------+----------+
+| id | name | class_id |
++----+------+----------+
+|  1 | tom  |      100 |
+|  2 | jack |      200 |
++----+------+----------+
+2 rows in set (0.00 sec)
+
+# 插入 my_class 不存在的 class_id 号,会插入失败
+mysql> insert into my_stu values(3,'xiaiming',300);
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`xyz`.`my_stu`, CONSTRAINT `my_stu_ibfk_1` FOREIGN KEY (`class_id`) REFERENCES `my_class` (`id`))
+
+# foreign key (从表-外键列) references 主表(关联主键列)
+```
+
+
+#### 约束-练习案例
+```bash
+# 需求:
+# 现有一个商店的数据库: shop_db, 记录 客户及器购物情况, 由下面三个表组成:
+#   商品表`goods`
+#			- 商品号 goods_id  商品名 goods_name  单价 unitprice  商品类别 category  供应商 provide
+#   客户表`customer`
+#		  - 客户号 customer_id  姓名 name  住址 address  电邮 email  性别 sex  身份证 card_id
+#   购物记录表`perchase`
+#			- 购没订单号 order_id  客户号 customer_id  商品号 goods_id  购买数量 nums
+
+# 主表-商品表
+mysql> create table if not exists `goods`(`goods_id` int primary key,`goods_name` varchar(32) not null default '',`unitprice` double not null default 0.0,`category` varchar(20),`provide` varchar(24)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> desc goods;
++------------+-------------+------+-----+---------+-------+
+| Field      | Type        | Null | Key | Default | Extra |
++------------+-------------+------+-----+---------+-------+
+| goods_id   | int         | NO   | PRI | NULL    |       |
+| goods_name | varchar(32) | NO   |     |         |       |
+| unitprice  | double      | NO   |     | 0       |       |
+| category   | varchar(20) | YES  |     | NULL    |       |
+| provide    | varchar(24) | YES  |     | NULL    |       |
++------------+-------------+------+-----+---------+-------+
+5 rows in set (0.00 sec)
+
+# 客户表
+mysql> create table if not exists `customer`(`customer_id` int primary key,`name` varchar(32) not null default '',`address` varchar(64),`email` varchar(32),`sex` char(1),`card_id` varchar(64)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> desc customer;
++-------------+-------------+------+-----+---------+-------+
+| Field       | Type        | Null | Key | Default | Extra |
++-------------+-------------+------+-----+---------+-------+
+| customer_id | int         | NO   | PRI | NULL    |       |
+| name        | varchar(32) | NO   |     |         |       |
+| address     | varchar(64) | YES  |     | NULL    |       |
+| email       | varchar(32) | YES  |     | NULL    |       |
+| sex         | char(1)     | YES  |     | NULL    |       |
+| card_id     | varchar(64) | YES  |     | NULL    |       |
++-------------+-------------+------+-----+---------+-------+
+6 rows in set (0.00 sec)
+
+# 购物记录表
+mysql> create table if not exists `perchase`(`order_id` int primary key,`customer_id` int, `goods_id` int,`nums` int,foreign key (`customer_id`) references `customer`(customer_id), foreign key (`goods_id`) references goods(`goods_id`)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> desc perchase;
++-------------+------+------+-----+---------+-------+
+| Field       | Type | Null | Key | Default | Extra |
++-------------+------+------+-----+---------+-------+
+| order_id    | int  | NO   | PRI | NULL    |       |
+| customer_id | int  | YES  | MUL | NULL    |       |
+| goods_id    | int  | YES  | MUL | NULL    |       |
+| nums        | int  | YES  |     | NULL    |       |
++-------------+------+------+-----+---------+-------+
+4 rows in set (0.00 sec)
 
 
 
-#### 外键：foreign key
+```
 
 
 
-#### 检查：check
+#### 自增长
 
 
 
+#### 索引优化速度
 
 
 
-
-
-
-
-
+#### 索引机制、创建索引、删除索引
 
 
 
@@ -2596,7 +2829,50 @@ mysql> select dept.deptno,dname,empname,job from emp right join dept on dept.dep
 
 
 
-## mysql 优化
+
+## mysql事务
+#### 事务基本操作
+
+
+
+#### 事务注意事项
+
+
+
+#### 事务的4种隔离级别
+
+
+
+
+
+
+
+
+## mysql存储引擎
+mysql中常用的2中存储引擎: innodb、mysam
+
+
+
+
+
+
+
+
+
+## mysql视图、用户管理、权限管理
+
+
+
+
+
+
+
+
+
+
+
+## mysql 常用优化
+
 
 
 
@@ -2606,3 +2882,5 @@ mysql> select dept.deptno,dname,empname,job from emp right join dept on dept.dep
 
 
 ## mysql 集群方案
+
+
