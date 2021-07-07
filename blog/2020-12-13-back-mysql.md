@@ -2560,13 +2560,13 @@ mysql> select dept.deptno,dname,empname,job from emp right join dept on dept.dep
 ## mysql约束
 约束: 用于确保数据库的数据 满足特定的商业规则规范
 #### 主键：primary key
-- 主键列的值不能重复，而且不能为空
-- 一张表只能有一个主键、但可以是复合主键
+- 主键列的值`不能重复`，而且`不能为空`
+- 一张表只能有一个`主键`,但可以是`复合主键`
 - 主键的指定方式有2种
 	+ 直接在字段后指定: 字段名 primary key
 	+ 在表的最后写: primary key(列名1,列名2)
 - 使用desc 表名.可以看到 primary key 的情况
-- 实际开发中，往往都会设计一个主键。
+- 实际开发中，`每一张表`往往都会设计`一个主键`。
 ```bash
 # 创建表-设置主键
 mysql> create table if not exists t06(id int primary key,`name` varchar(20),email varchar(32)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
@@ -2625,7 +2625,7 @@ mysql> desc t07;
 
 #### 唯一：unique
 当定义了唯一约束后, 该列的值是不能重复的
-- 没有设置 not null 时，可以插入成功的,而且可以重复插入多个 `NULL`
+- 没有设置 not null 时，`NULL`可以插入成功的,而且可以重复插入多个 `NULL`
 - 如果一个列(字段), 设置 unique not null => 效率类似 primary key
 - 一张表 可以有 多个 unique 约束
 ```bash
@@ -2756,55 +2756,77 @@ ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint f
 #		  - 客户号 customer_id  姓名 name  住址 address  电邮 email  性别 sex  身份证 card_id
 #   购物记录表`perchase`
 #			- 购没订单号 order_id  客户号 customer_id  商品号 goods_id  购买数量 nums
+# 要求:
+#   1.每个表的主、外键
+#   2.客户的姓名不能为空值
+#   3.电邮不能重复
+#   4.客户的性别：[男|女], 枚举
+#   5.单价: unitprice 1.0~9999.99, check
 
 # 主表-商品表
-mysql> create table if not exists `goods`(`goods_id` int primary key,`goods_name` varchar(32) not null default '',`unitprice` double not null default 0.0,`category` varchar(20),`provide` varchar(24)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
-Query OK, 0 rows affected (0.03 sec)
-
-mysql> desc goods;
-+------------+-------------+------+-----+---------+-------+
-| Field      | Type        | Null | Key | Default | Extra |
-+------------+-------------+------+-----+---------+-------+
-| goods_id   | int         | NO   | PRI | NULL    |       |
-| goods_name | varchar(32) | NO   |     |         |       |
-| unitprice  | double      | NO   |     | 0       |       |
-| category   | varchar(20) | YES  |     | NULL    |       |
-| provide    | varchar(24) | YES  |     | NULL    |       |
-+------------+-------------+------+-----+---------+-------+
-5 rows in set (0.00 sec)
+mysql> create table if not exists `goods`(
+	`goods_id` int primary key,
+	`goods_name` varchar(64) not null default '',
+	`unitprice` decimal(10,2) not null default 0 check (unitprice >= 1.0 and unitprice <= 9999.99),
+	`category` int not null default 0,
+	`provide` varchar(64) not null default ''
+) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
 
 # 客户表
-mysql> create table if not exists `customer`(`customer_id` int primary key,`name` varchar(32) not null default '',`address` varchar(64),`email` varchar(32),`sex` char(1),`card_id` varchar(64)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
-Query OK, 0 rows affected (0.02 sec)
+mysql> create table if not exists `customer`(
+	`customer_id` int primary key,
+	`name` varchar(64) not null default '',
+	`address` varchar(64) not null default '',
+	`email` varchar(64) not null default '',
+	`sex` enum('男','女') not null,
+	`card_id` char(18)
+) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
 
-mysql> desc customer;
-+-------------+-------------+------+-----+---------+-------+
-| Field       | Type        | Null | Key | Default | Extra |
-+-------------+-------------+------+-----+---------+-------+
-| customer_id | int         | NO   | PRI | NULL    |       |
-| name        | varchar(32) | NO   |     |         |       |
-| address     | varchar(64) | YES  |     | NULL    |       |
-| email       | varchar(32) | YES  |     | NULL    |       |
-| sex         | char(1)     | YES  |     | NULL    |       |
-| card_id     | varchar(64) | YES  |     | NULL    |       |
-+-------------+-------------+------+-----+---------+-------+
-6 rows in set (0.00 sec)
-
-# 购物记录表
-mysql> create table if not exists `perchase`(`order_id` int primary key,`customer_id` int, `goods_id` int,`nums` int,foreign key (`customer_id`) references `customer`(customer_id), foreign key (`goods_id`) references goods(`goods_id`)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
-Query OK, 0 rows affected (0.04 sec)
+# 购物记录表(从表)
+mysql> create table if not exists `perchase`(
+	`order_id` int unsigned primary key,
+	`customer_id` int not null,
+	`goods_id` int not null,
+	`nums` int not null default 0,
+	foreign key (`customer_id`) references `customer`(`customer_id`),
+	foreign key (`goods_id`) references `goods`(`goods_id`)
+) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
 
 mysql> desc perchase;
-+-------------+------+------+-----+---------+-------+
-| Field       | Type | Null | Key | Default | Extra |
-+-------------+------+------+-----+---------+-------+
-| order_id    | int  | NO   | PRI | NULL    |       |
-| customer_id | int  | YES  | MUL | NULL    |       |
-| goods_id    | int  | YES  | MUL | NULL    |       |
-| nums        | int  | YES  |     | NULL    |       |
-+-------------+------+------+-----+---------+-------+
++-------------+--------------+------+-----+---------+-------+
+| Field       | Type         | Null | Key | Default | Extra |
++-------------+--------------+------+-----+---------+-------+
+| order_id    | int unsigned | NO   | PRI | NULL    |       |
+| customer_id | int          | NO   | MUL | NULL    |       |
+| goods_id    | int          | NO   | MUL | NULL    |       |
+| nums        | int          | NO   |     | 0       |       |
++-------------+--------------+------+-----+---------+-------+
 4 rows in set (0.00 sec)
 
+mysql> desc goods;
++------------+---------------+------+-----+---------+-------+
+| Field      | Type          | Null | Key | Default | Extra |
++------------+---------------+------+-----+---------+-------+
+| goods_id   | int           | NO   | PRI | NULL    |       |
+| goods_name | varchar(64)   | NO   |     |         |       |
+| unitprice  | decimal(10,2) | NO   |     | 0.00    |       |
+| category   | int           | NO   |     | 0       |       |
+| provide    | varchar(64)   | NO   |     |         |       |
++------------+---------------+------+-----+---------+-------+
+5 rows in set (0.01 sec)
+
+mysql> desc customer;
++-------------+-------------------+------+-----+---------+-------+
+| Field       | Type              | Null | Key | Default | Extra |
++-------------+-------------------+------+-----+---------+-------+
+| customer_id | int               | NO   | PRI | NULL    |       |
+| name        | varchar(64)       | NO   |     |         |       |
+| address     | varchar(64)       | NO   |     |         |       |
+| email       | varchar(64)       | NO   |     |         |       |
+| sex         | enum('男','女')   | NO   |     | NULL    |       |
+| card_id     | char(18)          | YES  |     | NULL    |       |
++-------------+-------------------+------+-----+---------+-------+
+6 rows in set (0.01 sec)
 
 
 ```
@@ -2812,10 +2834,50 @@ mysql> desc perchase;
 
 
 #### 自增长
+从 1开始, 每次插入一条记录都会 `自动加一`
+- auto_increment
+- 设置自增长列后，插入数据的3种形式:
+	+ insert into (字段1,字段2...) values (NULL, 值2...),(NULL， 值2...)
+	+ insert into (字段2...) values (值2...),(值2...)
+	+ insert into values (NULL, 值2...),(NULL， 值2...)
+```bash
+mysql> create table t08(
+    -> `id` int primary key auto_increment,
+    -> `email` varchar(32) not null default '',
+    -> `name` varchar(32) not null default ''
+    -> ) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.03 sec)
+
+mysql> desc t08
+    -> ;
++-------+-------------+------+-----+---------+----------------+
+| Field | Type        | Null | Key | Default | Extra          |
++-------+-------------+------+-----+---------+----------------+
+| id    | int         | NO   | PRI | NULL    | auto_increment |
+| email | varchar(32) | NO   |     |         |                |
+| name  | varchar(32) | NO   |     |         |                |
++-------+-------------+------+-----+---------+----------------+
+3 rows in set (0.01 sec)
+
+mysql> insert into t08 values(null,'xiaominglin@gmail.com','xiaominglin'),(null,'12345@qq.com','tom'),(NULL,'usmag@qq.com','测试');
+Query OK, 3 rows affected (0.01 sec)
+Records: 3  Duplicates: 0  Warnings: 0
+
+mysql> select * from t08;
++----+-----------------------+-------------+
+| id | email                 | name        |
++----+-----------------------+-------------+
+|  1 | xiaominglin@gmail.com | xiaominglin |
+|  2 | 12345@qq.com          | tom         |
+|  3 | usmag@qq.com          | 测试        |
++----+-----------------------+-------------+
+3 rows in set (0.00 sec)
+
+```
 
 
 
-#### 索引优化速度
+#### 索引和索引优化 
 
 
 
