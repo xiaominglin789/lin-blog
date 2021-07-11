@@ -2566,7 +2566,7 @@ mysql> select dept.deptno,dname,empname,job from emp right join dept on dept.dep
 	+ 直接在字段后指定: 字段名 primary key
 	+ 在表的最后写: primary key(列名1,列名2)
 - 使用desc 表名.可以看到 primary key 的情况
-- 实际开发中，`每一张表`往往都会设计`一个主键`。
+- 实际开发中，`每一张表`往往都会设计`一个主键`。 
 ```bash
 # 创建表-设置主键
 mysql> create table if not exists t06(id int primary key,`name` varchar(20),email varchar(32)) engine innodb character set utf8mb4 collate utf8mb4_general_ci;
@@ -2840,6 +2840,8 @@ mysql> desc customer;
 	+ insert into (字段1,字段2...) values (NULL, 值2...),(NULL， 值2...)
 	+ insert into (字段2...) values (值2...),(值2...)
 	+ insert into values (NULL, 值2...),(NULL， 值2...)
+- `自增长`一般配合`primay key` 或 `unique`一起使用
+- 手动修改表的自增长起始行位置: `alter table 表名 auto_increment=?`, 默认从 1 开始的
 ```bash
 mysql> create table t08(
     -> `id` int primary key auto_increment,
@@ -2877,11 +2879,327 @@ mysql> select * from t08;
 
 
 
-#### 索引和索引优化 
+#### 索引和索引优化
+引是一个排序的列表，在这个列表中存储着索引的值和包含这个值的数据所在行的物理地址，在数据十分庞大的时候，索引可以大大加快查询的速度，这是因为使用索引后可以不用扫描全表来定位某行的数据，而是先通过索引表找到该行数据对应的物理地址然后访问相应的数据。
+> 表:超过百万行时,不做索引优化的情况下平均简单查询时间要:`1s-5s`
+- 1.主键索引
+- 2.唯一索引(unique)
+- 3.普通索引(index)
+- 4.全文索引
+```bash
+# 新增索引后,会增加表文件的内存。=> 空间换时间
+create index table_name_index_name on 表名(列名)
+
+# 使用 alter ... add 的方式添加索引
+alter table 表名 add index 所引名 (列名);
+
+# 创建表结构时,指定索引
+create table 表名(
+	`id` int primary key,
+	username varchar(32) not null default '',
+	index 索引名 (列名)
+)
+
+CREATE TABLE mytable(  
+    ID INT NOT NULL,   
+    username VARCHAR(16) NOT NULL,  
+    INDEX [indexName] (username(length))  
+);
+```
+注意:
+> 1.创建索引后,`只对` 创建了 `索引` 的列有效。
+> 2.创建一个索引, 并不能解决所有问题、
+> 3.主动删除索引列, 可以清除索引的查询加速结果, 但是.ibd文件的磁盘占用空间消耗不会降低的。
+```bash
+# 对于一张 2,000,000 行记录的简单结构的表(自复制的方式可以快速生成测试数据)
+# 查询条件带 有索引的列 查询的速度基本是最快的
+# 如果查询条件 没有包含  索引的列  查询速度将降低 1000+ 倍.
+# 添加索引的影响: 查询速度提升 1000+ 倍, 每加多一列索引,内存占用将平均增大 1/3 倍
+mysql> select * from tmp where id=2621380;
++---------+-------------+-----+
+| id      | name        | age |
++---------+-------------+-----+
+| 2621380 | xiaominglin |   3 |
++---------+-------------+-----+
+1 row in set (0.00 sec)
+
+mysql> select * from tmp where name="xiaominglin";
++---------+-------------+-----+
+| id      | name        | age |
++---------+-------------+-----+
+| 2621380 | xiaominglin |   3 |
++---------+-------------+-----+
+1 row in set (0.75 sec)
+
+mysql> select count(*) from tmp;
++----------+
+| count(*) |
++----------+
+|  2359296 |
++----------+
+1 row in set (0.08 sec)
+
+# 新添加 name 列的索引,时间花费 11.7s 
+mysql> create index index_name on tmp(`name`);
+Query OK, 0 rows affected (11.73 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+# 内存占用对比: 80m -> 120m -> 150m
+-rw-r----- 1 systemd-coredump systemd-coredump 83886080 7月   8 09:57 tmp.ibd
+-rw-r----- 1 systemd-coredump systemd-coredump 125829120 7月   9 09:02 tmp.ibd
+
+mysql> select * from tmp where name="xiaominglin";
++---------+-------------+-----+
+| id      | name        | age |
++---------+-------------+-----+
+| 2621380 | xiaominglin |   3 |
++---------+-------------+-----+
+1 row in set (0.00 sec)
+```
 
 
 
-#### 索引机制、创建索引、删除索引
+#### 创建索引、删除索引、索引机制
+1.创建索引
+将列的现有数据值生成一个 二叉树 数据结构
+```bash
+mysql> create index index_name on tmp(`name`);
+Query OK, 0 rows affected (11.73 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+```
+2.删除索引
+```bash
+mysql> drop index index_name on tmp;
+Query OK, 0 rows affected (0.02 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+```
+
+3.索引机制
+mysql索引的原理: 使用了数据结构 -> B+树
++ 1.没有索引时, 执行:`select * from tmp where id=9;`语句
+	- 因为将进行`全表扫描`:
+	- 逐一从 `id=1` 第一行开始进行对比,到了 `id=9`后 `依然`会继续`往下扫描`,`直到`扫描到全表记录的最后一条。
+	- 因为`找到一条`后,它不能确定后面的记录是否还有 `id=9` 的结果,仍然要往下继续找。
+	- 所有它会继续扫完全表才返回结果。
++ 2.索引查询: 二叉树查找
+```bash
+							5
+		----------+----------
+		2                   7
+  --+--              ---+---
+  1    3             6     8
+       +--                 +--
+         4                   9
+
+如果一共有9条记录,要查 id=8的记录。
+在创建索引时, 会以 1+2+...+9/10 = 5 中间数做头节点
+大于 5 的数都会在 右边,小于5 的数都在左边。
+那么要找到 8 的记录数, 只需要往下找 2次就能找到。所以查询速度极大提示
+查询30次,可以覆盖的记录范围: 1~2^30
+```
+以上的小结:
+```bash
+1.没有索引外什么会慢？ 因为全表扫描
+2.使用索引为什么快？ 因为建立索引,会形成一个索引的数据结构 比如二叉树(B树、B+树)
+```
++ 3.索引的代价
+	- 磁盘占用空间变大(创建索引记录需要消耗磁盘空间)
+	- 对  update语句、delete语句、insert语句 的效率影响
+		+ 比如: 删除的操作 => 索引要会重新维护
+		+ 增、删、改的操作 会对索引进行维护
+		+ 实际业务开发: select 操作占 90%, [update、delete、insert] 操作占 10%.
+
+
+
+#### mysql索引类型
+- 1.主键索引, 主键字段的为主索引
+	+ `primay key` 是 主键,也是 索引。只要加上来,查询速度是非常快的
+- 2.唯一索引(unique)
+	+ `unique` 不能重复、唯一性, 也是 索引。
+- 3.普通索引(index)
+	+ `index` 普通索引,既要提示查询速度、又可以重复. mysql常用 index 来做业务索引
+- 4.全文索引(fulltext)
+	+ 适用于 `engine=myisam` 存储引擎
+	+ 一般开发不会使用 mysql 自带的全文索引。因为效率很低.
+	+ 开发中考虑使用的解决方案: Solr(全文搜索)、ElasticSeach(ES)
+- 索引常用操作: 添加、删除、查询
+```bash
+mysql> create table if not exists `t09`(
+    -> `id` int,
+    -> `name` varchar(32) not null default '') 
+    -> engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.04 sec)
+
+# 1.查询表有哪些索引
+mysql> show indexes from t09;
+Empty set (0.01 sec)
+
+
+# 2.1.创建唯一索引
+mysql> create unique index index_unique_id on t09 (`id`);
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+# 2.2.创建普通索引的方式1
+mysql> create index index_id on t09 (`name`);
+Query OK, 0 rows affected (0.02 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+# 2.3.添加普通索引的方式2
+mysql> alter table t09 add index index_name (`name`);
+Query OK, 0 rows affected (0.02 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+# 2.4.唯一索引和普通索引: 如果列的数据不会重复,就优先使用`unique`唯一索引,否则使用 普通索引.
+
+# 2.5.添加主键索引
+mysql> alter table t09 add primary key (`id`);
+
+# 3.1.查看表的索引情况方式一: show indexes from [表名].
+mysql> show index from t09;
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table | Non_unique | Key_name        | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| t09   |          0 | PRIMARY         |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| t09   |          0 | index_unique_id |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| t09   |          1 | index_name      |            1 | name        | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+3 rows in set (0.01 sec)
+
+# 3.2.查看表索引方式二: show indexes from [表名]
+mysql> show indexes from t09;
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table | Non_unique | Key_name        | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| t09   |          0 | PRIMARY         |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| t09   |          0 | index_unique_id |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| t09   |          1 | index_name      |            1 | name        | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+3 rows in set (0.01 sec)
+
+# 3.3.查看表索引方式三: show keys from [表名]
+mysql> show keys from t09;
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table | Non_unique | Key_name        | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| t09   |          0 | PRIMARY         |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| t09   |          0 | index_unique_id |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| t09   |          1 | index_name      |            1 | name        | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++-------+------------+-----------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+3 rows in set (0.01 sec)
+
+# 4.1.删除普通或唯一索引： drop index [索引名] on [表名];
+mysql> drop index index_id on t09;
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+# 4.2.删除主键索引: alter table [表名] drop primay key;
+mysql> alter table t09 drop primary key;
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+```
+
+索引操作-练习:
+```bash
+# 1. 2种方式主键索引: 创建订单表 order(id, 商品名,订阅人,数量)
+mysql> create table if not exists `order_1`( `id` int  primary key auto_increment, `goods_name` varchar(64) not null default '', `buyer_id` int not null, `nums` int not null) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.03 sec)
+
+mysql> show index from order_1;
++---------+------------+----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table   | Non_unique | Key_name | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++---------+------------+----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| order_1 |          0 | PRIMARY  |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++---------+------------+----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+1 row in set (0.00 sec)
+
+mysql> create table if not exists `order_2`( `id` int, `goods_name` varchar(64) not null default '', `buyer_id` int not null, `nums`
+ int not null) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.02 sec)
+
+mysql> alter table order_2 add primary key (`id`);
+Query OK, 0 rows affected (0.03 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> show keys from order_2;
++---------+------------+----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table   | Non_unique | Key_name | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++---------+------------+----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| order_2 |          0 | PRIMARY  |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++---------+------------+----------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+1 row in set (0.00 sec)
+
+# 2. 创建一张特价菜单表 menu(id,菜单名,厨师,点餐人身份证,价格)。
+# 要求: id为主键、点餐人身份证唯一不重复、用2种方式来创建
+mysql> create table if not exists `menu_1`(
+    -> `id` int auto_increment,
+    -> `menu_name` varchar(24) not null default '',
+    -> `cooker` varchar(32) not null default '',
+    -> `subscrible_id` char(18) unique not null,
+    -> primary key (`id`)) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.04 sec)
+
+mysql> show index from menu_1;
++--------+------------+---------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table  | Non_unique | Key_name      | Seq_in_index | Column_name   | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++--------+------------+---------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| menu_1 |          0 | PRIMARY       |            1 | id            | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| menu_1 |          0 | subscrible_id |            1 | subscrible_id | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++--------+------------+---------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+2 rows in set (0.01 sec)
+
+mysql> create table if not exists `menu_2`(
+    -> `id` int auto_increment,
+    -> `menu_name` varchar(24) not null default '',
+    -> `cooker` varchar(32) not null default '',
+    -> `subscrible_id` char(18) not null,
+    -> primary key (`id`)) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.04 sec)
+
+mysql> create unique index index_subscrible_id on `menu_2` (`subscrible_id`);
+Query OK, 0 rows affected (0.02 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> show keys from menu_2;
++--------+------------+---------------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table  | Non_unique | Key_name            | Seq_in_index | Column_name   | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++--------+------------+---------------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| menu_2 |          0 | PRIMARY             |            1 | id            | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| menu_2 |          0 | index_subscrible_id |            1 | subscrible_id | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++--------+------------+---------------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+2 rows in set (0.00 sec)
+
+mysql> drop index index_subscrible_id on menu_2;
+Query OK, 0 rows affected (0.02 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> alter table menu_2 add unique index (`subscrible_id`);
+Query OK, 0 rows affected (0.01 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> show indexes from menu_2;
++--------+------------+---------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table  | Non_unique | Key_name      | Seq_in_index | Column_name   | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++--------+------------+---------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| menu_2 |          0 | PRIMARY       |            1 | id            | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| menu_2 |          0 | subscrible_id |            1 | subscrible_id | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++--------+------------+---------------+--------------+---------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+2 rows in set (0.00 sec)
+
+```
+
+
+#### `哪些列` 上适合使用 `索引`
+1.`较频繁的作为查询条件字段` => 适合创建索引
+exp: `select * from emp where empno=1` => empno 适合创建索引
+
+2.`唯一性太差的字段` 不适合 `单独创建索引`, 即使 `频繁的作为查询条件`
+exp: `select * from emp where sex='男'` =? sex 就不适合创建索引啦
+
+3.`更新非常频繁的字段` 不适合 `创建索引`, 意义不大,会频繁进行索引维护
+exp: `select * from emp where logincount=2;` =? logincount 登录次数
+
+4.不会出现在 `where字句的字段`  不应该 `创建索引`, 这就毫无意义.
 
 
 
@@ -2890,18 +3208,424 @@ mysql> select * from t08;
 
 
 
-
-
-## mysql事务
+## mysql事务(transaction)
+1. 什么是数据
+`事务`用于保证数据的`一致性`， 它由 一组相关的`dml`语句 组成, 要么一起操作成功、要么一起操作失败。比如 转账操作,就需要使用`事务`来处理、
+这里的,一组相关的`dml`语句: 专指-> 增、删、改, 不包含 查
+2.`事务`与`锁`
+当 执行事务操作 时, mysql会在表上 `加锁`, 防止 其他用户 `修改表的数据`，这对 用户来说 `非常重要`
 #### 事务基本操作
+mysql事务的几个重要操作:
+	- 1.`start transaction`:  开启一个事务
+	- 2.`savepoint [保存点名称]`:  设置保存点
+	- 3.`rollback to [保存点]`:  回滚事务到 某个保存点
+	- 4.`rollback`:  回滚全部事务
+	- 5.`commit`:  提交事务, 所有的操作生效,不能回滚了、
+> 细节点:
+- `rollback to [保存点名]` 后, `中间的其他保存点`会被删掉、
+- `rollback` 后, `所有保存点`都将被删掉
+- `commit` 后, 保存数据的最终状态,删除所有的保存点。不能再回滚了。
+
+```bash
+# 希望把 一组 操作语句 当成一个整体，要么一起成功、要么一起失败
+# 如: 小明转 100 块给 小丽
+mysql> create table if not exists `balance`(`id` int primary key auto_increment, `name` varchar(64) not null default '', `menoy` decimal(10,2) not null default 0) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.03 sec)
+
+mysql> insert into balance values (NULL, '小明', 3000.00),(NULL, '小丽', 5914.76);
+Query OK, 2 rows affected (0.01 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+mysql> select * from balance;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 3000.00 |
+|  2 | 小丽   | 5914.76 |
++----+--------+---------+
+2 rows in set (0.00 sec)
+
+mysql> update balance set `menoy`=`money`-100; update balance set `menoy`=`menoy`+100 where id=2;
+
+ERROR 1054 (42S22): Unknown column 'money' in 'field list'
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from balance;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 3000.00 |
+|  2 | 小丽   | 6014.76 |
++----+--------+---------+
+2 rows in set (0.00 sec)
+
+# 如上操作 并不能保证：数据的修改一致性，一旦 有一个金额设置失败另一个设置成功。将造成严重后果
+# 所以：需要一种机制来保证 2条修改语句 都操作成功或者都操作失败, 让数据保持一致性。
+# 开启事务
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+# 设置 保存点
+mysql> savepoint point_001;
+Query OK, 0 rows affected (0.00 sec)
+
+# 执行 操作语句
+mysql> update balance set `menoy`=`money`-100 where id=1; update balance set `menoy`=`menoy`+100 where id=2; 
+ERROR 1054 (42S22): Unknown column 'money' in 'field list'
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from balance;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 2900.00 |
+|  2 | 小丽   | 6114.76 |
++----+--------+---------+
+2 rows in set (0.00 sec)
+
+# 尝试回滚到 point_001  的保存点, 也就是 操作语句之前的状态
+mysql> rollback to point_001;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from balance;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 3000.00 |
+|  2 | 小丽   | 6014.76 |
++----+--------+---------+
+2 rows in set (0.00 sec)
+
+# 尝试提交事务: commit  保存数据的最终状态,删除所有的保存点。之后就不能再回滚了。
+mysql> commit;
+```
+
+
+#### 事务隔离级别基础 和 事务注意事项
+- 1. 读未提交（read uncommitted）
+- 2. 读已提交（read committed）
+- 3. 可重复读（repeatable read）
+- 4. 可串行化（serializable）
+这4种隔离级别的
+| ------- | ----- | --------- | ----  | -----|
+| 隔离级别 |  脏读  | 不可重复读 | 幻读  | 加锁读 |
+| ------- | ----- | --------- | ----  | ---- |
+| 读未提交 |  true |    true   | true  | 不加锁|
+| 读已提交 | false |    true   | true  | 不加锁|
+| 可重复读 | false |   false   | false | 不加锁|
+| 可串行化 | false |   false   | false | 不加锁|
+| ------- | ----- | --------- | ----  | ---- |
+```bash
+# 查看隔离级别, 默认的隔离级别是：可重复读的
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| REPEATABLE-READ         |
++-------------------------+
+1 row in set (0.00 sec)
+
+# 设置隔离级别
+# set session transaction isolation level [隔离级别]
+# 切换 隔离级别 -> 读未提交
+mysql> set session transaction isolation level read uncommitted;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| READ-UNCOMMITTED        |
++-------------------------+
+1 row in set (0.00 sec)
+
+# 切换 隔离级别 -> 读已提交
+mysql> set session transaction isolation level read committed;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| READ-COMMITTED          |
++-------------------------+
+1 row in set (0.00 sec)
+
+# 切换 隔离级别 -> 可串行化
+mysql> set session transaction isolation level serializable;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| SERIALIZABLE            |
++-------------------------+
+1 row in set (0.00 sec)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+```
+
+
+#### 事务细节2:
+- 1.如果不开启 `事务`, 默认情况下, `dml`操作 是 `自动commit`的, 所以不能回滚
+```bash
+mysql> desc t09;
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| id    | int         | NO   | PRI | NULL    |       |
+| name  | varchar(32) | NO   | MUL |         |       |
++-------+-------------+------+-----+---------+-------+
+2 rows in set (0.01 sec)
+
+mysql> select * from t09;
+Empty set (0.00 sec)
+
+mysql> insert into t09 values(1,'西红柿');
+Query OK, 1 row affected (0.01 sec)
+
+# 执行回滚,没效,因为默认不开启事务,mdl操作完后,自动commit.
+mysql> rollback;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from t09;
++----+-----------+
+| id | name      |
++----+-----------+
+|  1 | 西红柿    |
++----+-----------+
+1 row in set (0.00 sec)
+
+```
+- 2.如果`开始一个事务`, 你没有设置保存点, 可以执行 `rollback`, 他会默认回滚到 `事务开始的状态`
+```bash
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> update t09 set `name`='香猪' where id=1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from t09;
++----+--------+
+| id | name   |
++----+--------+
+|  1 | 香猪   |
++----+--------+
+1 row in set (0.00 sec)
+
+mysql> rollback;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> select * from t09;
++----+-----------+
+| id | name      |
++----+-----------+
+|  1 | 西红柿    |
++----+-----------+
+1 row in set (0.00 sec)
+
+```
+- 3.可以在这个事务中(还没提交前), 创建多个`保存点`: 比如 savepoint aaa, 执行 dml,
+再 savepoint bbb, 执行 dml, 再 savepoint ccc ....
+- 4.可以在`事务没有提交前`, 选择`回退`到`某个保存点`.
+- 5.mysql `事务机制` 需要 `innodb`的存储引擎支持, `myisam`不好使
+- 6.开始一个事务: `start transaction`, 可以设置->默认不自动commit: `set autocommit=off`
 
 
 
-#### 事务注意事项
+#### *事务的隔离级别*
+`多个连接` 开启 `各自事务` 操作 数据库中的数据时, 需要系统负责`隔离操作`,
+以确保 `各个连接` 在获取数据时的准确性。
+如果不考虑隔离性 -> 会引发: 脏读、不可重复读、幻读
+
+- 1. 读未提交（read uncommitted）
+- 2. 读已提交（read committed）
+- 3. 可重复读（repeatable read）
+- 4. 可串行化（serializable）
+
+这4种隔离级别引发的问题:
+| ------- | ----- | --------- | ----  | -----| ------- |
+| 隔离级别 |  脏读  | 不可重复读 | 幻读  | 加锁读 | 隔离强度 |
+| ------- | ----- | --------- | ----  | ---- | -------  |
+| 读未提交 |  true |    true   | true  | 不加锁|   弱     |
+| 读已提交 | false |    true   | true  | 不加锁|   较弱   |
+| 可重复读 | false |   false   | false | 不加锁| 默认:中等 |
+| 可串行化 | false |   false   | false | 加锁  |   强     |
+| ------- | ----- | --------- | ----  | ---- | -------- |
+
+- 1.脏读(dirty read): 当`一个事务` 读取 `另一个事务尚未提交的修改的结果`时,产生`脏读`。
+- 2.不可重复读(nonrepeatable read): `同一查询` 在 `同一事务` 中多次执行,由于`其他提交事务所做的 修改 或 删除 操作`,导致`每次返回不同的结果集`, 此时发生 `不可重复读`
+	+ 修改 或 删除 操作 => 不可重复读
+- 3.幻读(phantom read): `同一查询` 在 `同一事务` 中多次进行, 由于 `其他事务所做的 插入 操作`, 导致`每次返回不同的结果集`，此时发生 `幻读`
+	+ 插入 操作 => 幻读
+
+> 读未提交-分析:
+```bash
+# 开启2个客户端连接操作相同一个数据库同一张表 balance_1
+# client a, 使用默认隔离级别: repeatable read
+# client b, 使用隔离级别: read uncommited 读未提交
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| REPEATABLE-READ         |
++-------------------------+
+1 row in set (0.00 sec)
+
+# client b, 设置隔离级别: read uncommitted
+mysql> set session transaction isolation level read uncommitted;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| READ-UNCOMMITTED        |
++-------------------------+
+1 row in set (0.00 sec)
+
+# cliect a 开启事务
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+# client b 开启事务
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+# 1.cliect a 新建表,查看表
+mysql> create table if not exists `balance_1` like `balance`;
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> desc balance_1;
++-------+---------------+------+-----+---------+----------------+
+| Field | Type          | Null | Key | Default | Extra          |
++-------+---------------+------+-----+---------+----------------+
+| id    | int           | NO   | PRI | NULL    | auto_increment |
+| name  | varchar(64)   | NO   |     |         |                |
+| menoy | decimal(10,2) | NO   |     | 0.00    |                |
++-------+---------------+------+-----+---------+----------------+
+3 rows in set (0.01 sec)
+
+mysql> select * from balance_1;
+Empty set (0.00 sec)
+
+# 2.cliect b 查看表
+mysql> select * from balance_1;
+Empty set (0.00 sec)
+
+# 3.client a 插入一条记录, 但未 提交当前事务
+mysql> insert into balance_1 values(NULL, '小明', 6700.00);
+Query OK, 1 row affected (0.00 sec)
+
+# 4.client b 此刻再次查表, 发现有结果了?!
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 6700.00 |
++----+--------+---------+
+1 row in set (0.00 sec)
+
+# 5.client b 的事务隔离级别 => 读未提交
+#   可以取到到 `其他事务` dml操作(update|insert|delete) 但未提交前的改变。此时产生的就是 `脏读`.
+
+# 6.client a 继续操作, 修改 刚才插入的 menoy 数值、
+mysql> update balance_1 set menoy='7500.00' where id=1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+# 7.client a 继续操作, 再次新增一条记录
+mysql> insert into balance_1 values(NULL,'小丽',5000.00);
+Query OK, 1 row affected (0.01 sec)
+
+# 8.client a 提交当前事务操作。
+mysql> commit;
+Query OK, 0 rows affected (0.00 sec)
+
+# 9.client b 查询数据得到 新的修改/插入后的新结果
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 7500.00 |
+|  2 | 小丽   | 5000.00 |
++----+--------+---------+
+2 rows in set (0.00 sec)
+
+# 10.此时 会就出现了 `不可重复读` 和 `幻读`.
+#   不可重复读: `同一查询` 在 `同一事务` 中多次执行,由于`其他提交事务所做的 修改 或 删除 操作`,导致`每次返回不同的结果集`
+#   幻读: `同一查询` 在 `同一事务` 中多次进行, 由于 `其他事务所做的 插入 操作`, 导致`每次返回不同的结果集`
+# -> 其实在client b 连接数据库进行操作的时候,希望查询到的是 那个时刻 `balance_new` 当时的数据记录状态, 而不是 被其他连接的事务操作得到其他结果集。
+```
+
+> 读已提交-分析:
+```bash
+# 开启2个客户端连接操作相同一个数据库同一张表 balance_2
+# client a, 使用默认隔离级别: repeatable read
+# client b, 使用隔离级别: read commited
+
+# 1.client a 开启事务，新建表 balance_2，查看表结构和状态
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> create table balance_2 like balance;
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> select * from balance_2;
+Empty set (0.00 sec)
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| REPEATABLE-READ         |
++-------------------------+
+1 row in set (0.00 sec)
+
+# 2.client b 设置隔离级别: 读已提交，开启事务，查看表
+mysql> set session transaction isolation level read committed; 
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| READ-COMMITTED          |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from balance_2;
+Empty set (0.00 sec)
+
+# 3.client a 插入一条记录,查看表
+mysql> insert into balance_2 values(NULL, '张三', 8000.00);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from balance_2;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 张三   | 8000.00 |
++----+--------+---------+
+1 row in set (0.00 sec)
+
+# 4.client b 也查看表，此时是看不得任何结果的、
+
+
+```
 
 
 
-#### 事务的4种隔离级别
+#### ACID
+
+
 
 
 
@@ -2934,6 +3658,8 @@ mysql中常用的2中存储引擎: innodb、mysam
 
 
 ## mysql 常用优化
+结构优化（Scheme optimization）
+查询优化（Query optimization）
 
 
 
