@@ -10,6 +10,8 @@ tags: [back, mysql]
 
 ## mysql 关系型数据库
 - 数据库-表的本质是文件: xxx.frm、xxx.ibd
+	+ xxx.frm => 表结构的文件
+	+ xxx.ibd => 表数据的文件
 - 生产环境: 3306端口一般都会修改成其他端口
 - 数据库三层结构
 ```bash
@@ -612,10 +614,12 @@ delete from `user`;
 	+ is null: 判断是否为空
 	+ and: 多个条件同时成立
 	+ or:  多个条件任意成立一个
+	+ in:  任意为其中的一个
 	+ not: 不成立, where not(salary > 100)
 - 4.排序字句,`order by [列名|别名] asc|desc`
 	+ 默认, 升序, asc
 	+ 降序: desc
+	+ 细节：多条件 排序时,需要给每个条件加 排序规则,否则除第一个条件的其他条件是不生效的。
 ```sql
 mysql> create table if not exists `student`(`id` int primary key auto_increment, `name` varchar(20) not null
 default '', `chinese` float not null default 0.0, `english` float not null default 0.0, `math` float not null default 0.0) engine innodb character set utf8 collate utf8_general_ci;
@@ -863,8 +867,10 @@ mysql> select max(`chinese`), max(`chinese` + `math` + `english`), min(`math`) f
 ```
 
 ##### group by + having
-- 1.分组统计: group by, 对列进行分组统计
+- 1.分组统计: group by, 对`列`进行`分组统计`
 - 2.使用`having`对分组后的结果进行过滤
+- 3.分组+过滤 形式: group by 列名 having 过滤条件
+- 4.形式：`select 列名1,列名2,列名3... from 表名 group by 列名`
 ```bash
 # 部门表、员工表、工资级别表
 create table if not exists `dept`(
@@ -1388,7 +1394,7 @@ mysql> select rand() from DUAL;
 - 7.两个日期差(结果是天): datediff(date1, date2)
 - 8.两个时间差(x时y分z秒): timediff(time1, time2)
 - 9.当前时间: now()
-- 10.年 月 日: year(date), moNth(date), day(date)
+- 10.年 月 日: year(date), month(date), day(date)
 - 11.返回:1970-1-1 00:00:00 到现在的秒数: uni_timestamp()
 - 12.将 秒数 转成指定格式的日期: from_unixtime(unix_timestamp() | 秒数)
 ```bash
@@ -1490,7 +1496,7 @@ mysql> select * from `msg`;
 # 7.两个日期差(结果是天): datediff(date1, date2)
 # 8.两个时间差(x时y分z秒): timediff(time1, time2)
 # 9.当前时间戳: now()
-# 10.年、月、日: year(date), moNth(date), day(date)
+# 10.年、月、日: year(date), month(date), day(date)
 # 11.返回:1970-1-1 00:00:00 到现在的秒数: uni_timestamp()
 # 12.将 unix_time 秒数转成指定格式的日期: from_unixtime(unix_timestamp() | 秒数)
 
@@ -1515,6 +1521,7 @@ mysql> select * from `msg` where date_add(`send_time`, interval 10 minute) >= no
 +----+--------------+---------------------+
 1 row in set (0.00 sec)
 
+# 查询在15分钟内发布的新闻
 mysql> select * from `msg` where date_sub(now(), interval 15 minute) <= `send_time`;
 +----+--------------+---------------------+
 | id | content      | send_time           |
@@ -1579,10 +1586,10 @@ mysql> select timediff('10:11:31', '05:59:16') from DUAL;
 +----------------------------------+
 1 row in set (0.00 sec)
 
-# 取出日期时间中的 年、月、日： year(date), moNth(date), day(date)
-mysql> select year(now()), moNth(now()), day(now()) from DUAL;
+# 取出日期时间中的 年、月、日： year(date), month(date), day(date)
+mysql> select year(now()), month(now()), day(now()) from DUAL;
 +-------------+--------------+------------+
-| year(now()) | moNth(now()) | day(now()) |
+| year(now()) | month(now()) | day(now()) |
 +-------------+--------------+------------+
 |        2021 |            7 |          3 |
 +-------------+--------------+------------+
@@ -1631,7 +1638,7 @@ mysql> select from_unixtime(unix_timestamp(), '%Y-%m-%d %H:%m:%s') from DUAL;
 - 1.查询操作数据库的用户+ip: user()
 - 2.操作的是哪数据库名称: databaase()
 - 3.为字符串算出一个md5 32为的字符(加密): md5()
-- 4.加密算法二(mysql给数据库用户连接登录进行加密的操作): password(str), mysql8 已移除了该函数
+- 4.加密算法二(mysql给数据库用户连接登录进行加密的操作): password(str), 注意：`mysql8+ 已移除了该函数`
 - 5.xxx: xxx()
 ```bash
 - 1.查询操作数据库的用户+ip: user()
@@ -1882,7 +1889,7 @@ mysql> select * from `emp` order by `deptno` asc,`salary` desc;
 +----+-------+---------+-----------+------+---------------------+---------+---------+--------+
 13 rows in set (0.00 sec)
 
-# 分页查询: [limit start, count]  [start:从 0 开始, start+1] 或者  limit count offset start [start: 也是从0 开始], start+1
+# 分页查询: [limit start, count],start:从 start+1 开始, 或者  limit count offset start, start: 也是从 start+1 开始
 # 第一页
 mysql> select * from `emp` order by `empno` limit 0,3;
 +----+-------+---------+----------+------+---------------------+---------+--------+--------+
@@ -2029,7 +2036,7 @@ mysql> select `dept`.`dname`,`emp`.`empname`,`emp`.`salary`,`emp`.`deptno`  from
 3 rows in set (0.00 sec)
 
 # 显示各个员工的姓名、工资和工资级别、
-mysql> select `empname`,`salary`,`grade` from `emp`,`salgrade` where `emp`.`salary` between `sal
+mysql> select `empname`,`salary`,`grade` from `emp`,`salgrade` where `emp`.`salary` between `losal` and `hisal`;
 +---------+---------+-------+
 | empname | salary  | grade |
 +---------+---------+-------+
@@ -3225,6 +3232,8 @@ mysql事务的几个重要操作:
 - `rollback to [保存点名]` 后, `中间的其他保存点`会被删掉、
 - `rollback` 后, `所有保存点`都将被删掉
 - `commit` 后, 保存数据的最终状态,删除所有的保存点。不能再回滚了。
+- `set session transaction isolation level [事务隔离级别]` => 针对当前客户端连接设置 隔离级别
+- `set global transaction isolation level [事务隔离级别]` => 针对全部的连接设置 隔离级别
 
 ```bash
 # 希望把 一组 操作语句 当成一个整体，要么一起成功、要么一起失败
@@ -3564,19 +3573,12 @@ mysql> select * from balance_1;
 
 > 读已提交-分析:
 ```bash
-# 开启2个客户端连接操作相同一个数据库同一张表 balance_2
-# client a, 使用默认隔离级别: repeatable read
-# client b, 使用隔离级别: read commited
+# 开启一个新的客户端连接操作相同一个数据库同一张表 balance_1
+# client c, 使用隔离级别: read commited
 
-# 1.client a 开启事务，新建表 balance_2，查看表结构和状态
+# 1.client a 重新开启事务
 mysql> start transaction;
 Query OK, 0 rows affected (0.00 sec)
-
-mysql> create table balance_2 like balance;
-Query OK, 0 rows affected (0.02 sec)
-
-mysql> select * from balance_2;
-Empty set (0.00 sec)
 
 mysql> select @@transaction_isolation;
 +-------------------------+
@@ -3586,7 +3588,7 @@ mysql> select @@transaction_isolation;
 +-------------------------+
 1 row in set (0.00 sec)
 
-# 2.client b 设置隔离级别: 读已提交，开启事务，查看表
+# 2.client c 设置隔离级别: 读已提交，开启事务，查看表
 mysql> set session transaction isolation level read committed; 
 Query OK, 0 rows affected (0.00 sec)
 
@@ -3601,31 +3603,262 @@ mysql> select @@transaction_isolation;
 mysql> start transaction;
 Query OK, 0 rows affected (0.00 sec)
 
-mysql> select * from balance_2;
-Empty set (0.00 sec)
-
-# 3.client a 插入一条记录,查看表
-mysql> insert into balance_2 values(NULL, '张三', 8000.00);
-Query OK, 1 row affected (0.00 sec)
-
-mysql> select * from balance_2;
+mysql> select * from balance_1;
 +----+--------+---------+
 | id | name   | menoy   |
 +----+--------+---------+
-|  1 | 张三   | 8000.00 |
+|  1 | 小明   | 7500.00 |
+|  2 | 小丽   | 5000.00 |
 +----+--------+---------+
+2 rows in set (0.00 sec)
+
+# 3.client a 插入一条新记录, 未提交事务, 查看表
+mysql> insert into balance_1 values(null,'张三',8000.00);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 7500.00 |
+|  2 | 小丽   | 5000.00 |
+|  3 | 张三   | 8000.00 |
++----+--------+---------+
+3 rows in set (0.00 sec)
+
+# 4.client c 也查看表，此时是看不得任何结果的、
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 7500.00 |
+|  2 | 小丽   | 5000.00 |
++----+--------+---------+
+2 rows in set (0.00 sec)
+
+# 5.可以看到, client c - read committed 不会有脏读的情况
+
+# 6.client a 继续操作, 修改 小明的 menoy = 7800.00
+mysql> update balance_1 set menoy=7800.00 where id=1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+# 7.client a 继续操作, 添加新记录
+mysql> insert into balance_1 values(null,'李四',6500.00);
+Query OK, 1 row affected (0.00 sec)
+
+# 8.client c 查看表
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 7500.00 |
+|  2 | 小丽   | 5000.00 |
++----+--------+---------+
+2 rows in set (0.00 sec)
+
+# 9.client a 提交事务
+mysql> commit;
+Query OK, 0 rows affected (0.00 sec)
+
+# 10.client c 查看表
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 7800.00 |
+|  2 | 小丽   | 5000.00 |
+|  3 | 张三   | 8000.00 |
+|  4 | 李四   | 6500.00 |
++----+--------+---------+
+4 rows in set (0.00 sec)
+
+# 可以看出, read committed 虽然没有脏读, 但是 会有 `不可重复读`、`幻读`
+
+```
+
+> 可重复读: repeatable read
+```bash
+# 新开一个连接 client d
+# 设置 事务隔离级别：repeatable read
+# 开启事务, 查询表 balance_1
+mysql> set session transaction isolation level repeatable read;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| REPEATABLE-READ         |
++-------------------------+
 1 row in set (0.00 sec)
 
-# 4.client b 也查看表，此时是看不得任何结果的、
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
 
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 7800.00 |
+|  2 | 小丽   | 5000.00 |
+|  3 | 张三   | 8000.00 |
+|  4 | 李四   | 6500.00 |
++----+--------+---------+
+4 rows in set (0.00 sec)
 
+# 1.client a 事务隔离级别：repeatable read, 开启新事务
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| REPEATABLE-READ         |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+# 2.client a 插入一条新纪录，未提交事务。
+mysql> insert into balance_1 values(null,'八戒',11111.00);
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from balance_1;
++----+--------+----------+
+| id | name   | menoy    |
++----+--------+----------+
+|  1 | 小明   |  7800.00 |
+|  2 | 小丽   |  5000.00 |
+|  3 | 张三   |  8000.00 |
+|  4 | 李四   |  6500.00 |
+|  5 | 八戒   | 11111.00 |
++----+--------+----------+
+5 rows in set (0.00 sec)
+
+# 3.client d 查看表
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 7800.00 |
+|  2 | 小丽   | 5000.00 |
+|  3 | 张三   | 8000.00 |
+|  4 | 李四   | 6500.00 |
++----+--------+---------+
+4 rows in set (0.00 sec)
+
+# 4.这里没有脏读的情况
+
+# 5.client a 提交事务
+mysql> commit;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from balance_1;
++----+--------+----------+
+| id | name   | menoy    |
++----+--------+----------+
+|  1 | 小明   |  7800.00 |
+|  2 | 小丽   |  5000.00 |
+|  3 | 张三   |  8000.00 |
+|  4 | 李四   |  6500.00 |
+|  5 | 八戒   | 11111.00 |
++----+--------+----------+
+5 rows in set (0.00 sec)
+
+# 6.client d 再查表，依然看不到修改
+mysql> select * from balance_1;
++----+--------+---------+
+| id | name   | menoy   |
++----+--------+---------+
+|  1 | 小明   | 7800.00 |
+|  2 | 小丽   | 5000.00 |
+|  3 | 张三   | 8000.00 |
+|  4 | 李四   | 6500.00 |
++----+--------+---------+
+4 rows in set (0.00 sec)
+
+# 7.这里可以明显看出, repeatable read 是不会出现 脏读、不可重复读、幻读 的.
+
+# 8.当 client d 提交事务后，再查表，才会获取最新更新后的结果
+mysql> commit;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from balance_1;
++----+--------+----------+
+| id | name   | menoy    |
++----+--------+----------+
+|  1 | 小明   |  7800.00 |
+|  2 | 小丽   |  5000.00 |
+|  3 | 张三   |  8000.00 |
+|  4 | 李四   |  6500.00 |
+|  5 | 八戒   | 11111.00 |
++----+--------+----------+
+5 rows in set (0.00 sec)
+
+```
+
+> serializable: 可串行化
+```bash
+# 新起一个连接 client e
+# 设置事务最高隔离级别: serializable
+# 开启事务,查询表
+mysql> set session transaction isolation level serializable;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| SERIALIZABLE            |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from balance_1;
++----+--------+----------+
+| id | name   | menoy    |
++----+--------+----------+
+|  1 | 小明   |  7800.00 |
+|  2 | 小丽   |  5000.00 |
+|  3 | 张三   |  8000.00 |
+|  4 | 李四   |  6500.00 |
+|  5 | 八戒   | 11111.00 |
++----+--------+----------+
+5 rows in set (0.00 sec)
+
+# client a 开启事务
+mysql> select @@transaction_isolation;
++-------------------------+
+| @@transaction_isolation |
++-------------------------+
+| REPEATABLE-READ         |
++-------------------------+
+1 row in set (0.00 sec)
+
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+# client a 准备插入新纪录,会被卡住, 等待 client e 事务提交了才能操作。
+mysql> insert into balance_1 values(null,'悟空',12000.00);
+> 大概过了 10秒, 操作超时
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+# serializable 会加锁读, 开启事务正在操作数据时,其他事务将等待 当前 事务提交后才能操作、
+# 对于 mysql8 事务隔离级别, 常用的就是 repeatable read（默认的,可重复读）或 read committed （读已提交）
 ```
 
 
 
-#### ACID
+#### 事务的 ACID 特性
+- 原子性：事务是一个不可分割的工作单位,事务的操作dml-要么都发生,要么都不发生
+- 一致性: 事务必须使数据库从一致性状态变换到 另一个一致性状态
+- 隔离性: 多个用户并发访问数据库,数据库为每个用户开启的事务,不能被其他事务的操作所干扰,多个并发事务之间要互相隔离。
+- 持久性: 一个事务一旦被提交(commit).它对数据库中数据的改变就是永久性的。
 
-
+通过mysql的 `my.ini` 配置系统全局-事务隔离级别：
+	`transaction-isolation = REPEATABLE-READ`
 
 
 
@@ -3635,7 +3868,41 @@ mysql> select * from balance_2;
 
 
 ## mysql存储引擎
-mysql中常用的2中存储引擎: innodb、mysam
+mysql中常用的3中存储引擎: innodb、mysam、memory
+```bash
+# 查看mysql的存储引擎列表
+mysql> show engines;
++--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
+| Engine             | Support | Comment                                                        | Transactions | XA   | Savepoints |
++--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
+| FEDERATED          | NO      | Federated MySQL storage engine                                 | NULL         | NULL | NULL       |
+| MEMORY             | YES     | Hash based, stored in memory, useful for temporary tables      | NO           | NO   | NO         |
+| InnoDB             | DEFAULT | Supports transactions, row-level locking, and foreign keys     | YES          | YES  | YES        |
+| PERFORMANCE_SCHEMA | YES     | Performance Schema                                             | NO           | NO   | NO         |
+| MyISAM             | YES     | MyISAM storage engine                                          | NO           | NO   | NO         |
+| MRG_MYISAM         | YES     | Collection of identical MyISAM tables                          | NO           | NO   | NO         |
+| BLACKHOLE          | YES     | /dev/null storage engine (anything you write to it disappears) | NO           | NO   | NO         |
+| CSV                | YES     | CSV storage engine                                             | NO           | NO   | NO         |
+| ARCHIVE            | YES     | Archive storage engine                                         | NO           | NO   | NO         |
++--------------------+---------+----------------------------------------------------------------+--------------+------+------------+
+9 rows in set (0.01 sec)
+
+```
+- innodb: 默认引擎, 支持 `事务`、`外键`、`行级锁` 
+- myisam: 添加速度快、`支持表级锁`、 不支持`外键 和 事务`
+- memory: 数据存储在内存中、执行速度很快，支持 索引（memory默认使用 `哈希索引`），但 `无法持久存储数据`-关闭mysql服务,数据就会丢失,但是表结构还在的.
+```bash
+# 在创建表的时候设置 表的存储引擎
+create table if not exists [table_name](...) engine [存储引擎] character set [字符集] collate [字符规则];
+```
+
+> mysql-数据表的存储引擎的选择:
+- 1.如果你的应用不需要 `事务`, 处理的知识基本的`CURD`操作, 那么可以考虑使用 `Myisam` 引擎
+- 2.如果需要使用事务, 选择 `InnoDB`
+- 3.经典用法: 用户的在线状态记录表 -> 使用 `Memory`
+	+ 案例: qq的在线状态, 优化方案
+
+> 指令修改存储引擎: `alter table [表名] engine=[新的存储引擎];`
 
 
 
@@ -3643,32 +3910,1308 @@ mysql中常用的2中存储引擎: innodb、mysam
 
 
 
+## mysql视图（view）
+视图(view)是一个虚拟表，可以只限定某些字段的开放访问。
+
+- 视图的总结:
+1.视图是根据`基表`来创建的, 视图是虚拟的表
+2.视图也有列、数据来自`基表`
+3.通过视图可以dml操作`基表的数据`
+4.基表的改变,也会影响视图的数据.
+
+- 视图的基本使用:
+1.`createa view 视图名 as [select语句]` 创建一个视图
+2.`alter view [视图名] as [select语句]` 修改一个视图
+3.`show create view [视图名]`          展示视图的创建信息
+4.`drop view [视图名1],[视图名2]` 		  删除视图
+```bash
+mysql> create view balance_view as select id,`name` from balance_1;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> select * from balance_view;
++----+--------+
+| id | name   |
++----+--------+
+|  1 | 小明   |
+|  2 | 小丽   |
+|  3 | 张三   |
+|  4 | 李四   |
+|  5 | 八戒   |
++----+--------+
+5 rows in set (0.00 sec)
+
+```
+
+> 创建视图后,会生成 `对应名称的` `.frm` 结构文件,公用 基表的 `.ibd`文件的数据
+
+- 视图的最佳实践:
+	1.安全: 一些数据表有着重要的信息, 有些字段要保密的, 不能让用户直接查看到。
+	可以创建视图, 在视图中只保留一部分字段。这样，用户就可以查询自己需要的字段，不能查看保密字段.
+
+	2.性能: 数据库的数据常常会`分表`存储、使用 `外键` 建立这些表的之间关系。这时，数据查询通常要用到 `join` 联表查询, 这样做不但麻烦,效率相对也比较低、如果使用视图,将相关的表和字段结合在一起，就可以 避免 使用 `join` 查询数据。
+
+	3.灵活: 如果系统中有一张旧表、这张表由于设计的问题，即将被废弃。然而，很多应用都是基于这张表的，不易修改。
+	这时可以使用视图，视图中的数据直接映射到 `新建的表`。可以少做很多修改,也能达到 升级数据表的目的。
+
+> 练习题: 针对 emp、dept、salgrade 三张表,创建一个视图。可以显示
+>  雇员编号、雇员名、雇员部门名称和薪水级别
+```bash
+mysql> desc emp;
++----------+--------------------+------+-----+-------------------+-------------------+
+| Field    | Type               | Null | Key | Default           | Extra             |
++----------+--------------------+------+-----+-------------------+-------------------+
+| id       | int                | NO   | PRI | NULL              | auto_increment    |
+| empno    | mediumint unsigned | NO   | PRI | 0                 |                   |
+| empname  | varchar(20)        | NO   |     |                   |                   |
+| job      | varchar(9)         | NO   |     |                   |                   |
+| mgr      | mediumint unsigned | YES  |     | NULL              |                   |
+| hiredate | timestamp          | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
+| salary   | decimal(7,2)       | NO   |     | NULL              |                   |
+| comm     | decimal(7,2)       | YES  |     | NULL              |                   |
+| deptno   | mediumint unsigned | NO   |     | 0                 |                   |
++----------+--------------------+------+-----+-------------------+-------------------+
+9 rows in set (0.01 sec)
+
+mysql> desc dept;
++--------+--------------------+------+-----+---------+----------------+
+| Field  | Type               | Null | Key | Default | Extra          |
++--------+--------------------+------+-----+---------+----------------+
+| id     | int                | NO   | PRI | NULL    | auto_increment |
+| deptno | mediumint unsigned | NO   | PRI | 0       |                |
+| dname  | varchar(20)        | NO   |     |         |                |
+| loc    | varchar(13)        | NO   |     |         |                |
++--------+--------------------+------+-----+---------+----------------+
+4 rows in set (0.00 sec)
+
+mysql> desc salgrade;
++-------+--------------------+------+-----+---------+----------------+
+| Field | Type               | Null | Key | Default | Extra          |
++-------+--------------------+------+-----+---------+----------------+
+| id    | int                | NO   | PRI | NULL    | auto_increment |
+| grade | mediumint unsigned | NO   | PRI | 0       |                |
+| losal | decimal(17,2)      | NO   |     | NULL    |                |
+| hisal | decimal(17,2)      | NO   |     | NULL    |                |
++-------+--------------------+------+-----+---------+----------------+
+4 rows in set (0.00 sec)
+
+# 3表联查
+mysql> select empno,empname,dname,grade from emp,dept,salgrade where emp.deptno=dept.deptno and emp.salary between salgrade.losal and salgrade.hisal;
++-------+---------+----------+-------+
+| empno | empname | dname    | grade |
++-------+---------+----------+-------+
+|  7900 | james   | sales    |     1 |
+|  7639 | smite   | sales    |     1 |
+|  7654 | martin  | sales    |     2 |
+|  7521 | ward    | sales    |     2 |
+|  7844 | turner  | sales    |     3 |
+|  7499 | allen   | sales    |     3 |
+|  7934 | miller  | manager  |     4 |
+|  7902 | ford    | research |     4 |
+|  7788 | scott   | research |     4 |
+|  7782 | clake   | manager  |     4 |
+|  7698 | blake   | sales    |     4 |
+|  7566 | jones   | research |     4 |
+|  7839 | king    | manager  |     5 |
++-------+---------+----------+-------+
+13 rows in set (0.00 sec)
+
+# 所以: 可以去创建视图了
+mysql> create view emp_view03 as select empno,empname,dname,grade from emp,dept,salgrade where emp.deptno=dept.deptno and emp.salary between salgrade.losal and salgrade.hisal;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> select * from emp_view03;
++-------+---------+----------+-------+
+| empno | empname | dname    | grade |
++-------+---------+----------+-------+
+|  7900 | james   | sales    |     1 |
+|  7639 | smite   | sales    |     1 |
+|  7654 | martin  | sales    |     2 |
+|  7521 | ward    | sales    |     2 |
+|  7844 | turner  | sales    |     3 |
+|  7499 | allen   | sales    |     3 |
+|  7934 | miller  | manager  |     4 |
+|  7902 | ford    | research |     4 |
+|  7788 | scott   | research |     4 |
+|  7782 | clake   | manager  |     4 |
+|  7698 | blake   | sales    |     4 |
+|  7566 | jones   | research |     4 |
+|  7839 | king    | manager  |     5 |
++-------+---------+----------+-------+
+13 rows in set (0.01 sec)
+
+```
 
 
-## mysql视图、用户管理、权限管理
+ 
 
 
 
 
 
 
+## mysql管理: 用户管理、权限管理
+开发时，根据不同的开发需求,赋予他相对应的mysql操作权限 => root 创建不同的用户并且授与不同的权限.
+
+#### 用户管理
+>>> mysql.user 表 (实际密码是通过 password(明文密码) 加密得到的)
+- 1.新建用户账号: create user [用户名] @ [登录位置] identified by [密码];
+		+ 登录位置:
+			- '%': 开放 所有内外网 地址连接,不限定
+			- 'localhost': 限定 localhost 地址连接
+			- '111.222.333.000': 指定固定公网ip连接
+			- '111.222.333.%': 指定固定公网且在某段ip内连接
+```bash
+# 新建用户
+mysql> create user 'apem999'@'%' identified by 'apem@159.com';
+
+# 对 新建用户 进行赋予各种不同的操作权限. 重新登录需要使用新密码
+mysql> alter user 'apem999'@'%' identified with mysql_native_password by 'apem@158.com';
+Query OK, 0 rows affected (0.01 sec)
+
+```
+- 2.修改用户密码
+	  + 修改自己的密码: alter user '账号'@'登录位置' identified with mysql_native_password by '新密码';
+	  + 修改别人的密码,需要权限才行。
+- 3.删除指定的用户连接:
+		+ drop user [用户名]@[ip地址];
+
+#### 权限管理（授权）
+1. 授权: gant [权限1],[权限2],[权限3],... on 数据库.对象名 to 用户名 @ 登录位置
+		- on *.* => 代表所有数据库的所有数据对象(包括所有的 表、视图、触发器)
+		- on 数据库.* => 针对 某个的数据库下的所有数据对象(表、视图、触发器)
+		- on 数据库.对象 => 指定 数据库.对象
+	 常用权限列表：
+	  - all: 所有的权限，除了 grant option(授权)之外
+	  - select: 查询的权限
+	  - insert: 新增的权限
+	  - update: 更新的权限
+	  - delete: 删除的权限
+	  - alter:  允许使用 alter table
+	  - create: 允许使用 create table
+	  - drop:   允许使用 drop table
+	  - index:  允许使用 create index 和 drop index
+	  - create user: 允许创建用户
+	  - create view: 允许创建视图
+```bash
+# 例子exp:
+mysql> grant select,insert,update,alter,create,index,create view on xyz.* to identified by 'apem999'@'%';
+```
+
+2. 刷新权限操作结果。
+```bash
+mysql> flush privileges;
+Query OK, 0 rows affected (0.00 sec)
+```
+
+3.回收/撤销 用户的权限: revoke
+	+ revoke [权限1],[权限2],[权限3],... on 数据库.对象名 to 用户名 @ 登录位置
+
+4.用户权限操作后都需要刷新才生效: `flush privileges;`
 
 
+#### 练习题一:
+```bash
+# 1.下列哪条语句是错误的?（d）
+a.select empno,empname name,salary sal from emp;
+b.select empno,empname name,salary as sal from emp;
+c.select empname, salary*12 as "Annual Salary" from emp;
+d.select empname,salary*12 Annual Salaray from emp;
+> 'as' 别名, as 可以省略写,但是 别名有空格的情况需要用引号包住。
 
 
-
-## mysql 常用优化
-结构优化（Scheme optimization）
-查询优化（Query optimization）
-
-
-
-
-
+# 2.某用户希望显示补贴非空的所有雇员信息，应该使用哪条语句？（b）
+a.select empname,salary,comm from emp where comm <> null;
+b.select empname,salary,comm from emp where comm is not null;
+c.select empname,salary,comm from emp where comm <> 0; 
+> '<>' 后面跟数值 代表 不等
+> 判断非空，使用 `is not null`
+> `comm`非空 应该用 `is not null`
 
 
+# 3.以下哪条语句是错误的？（c）
+a.select empname,salary from emp order by salary;
+b.select empname,salary as sal from emp order by sal;
+c.select empname,salary as sal from emp order by 3;
+> order by [列名 | 列的别名]
+```
+
+#### 练习题二:
+```bash
+# 1.写出 查看 detp 表结构 和 查看 emp 表结构的语句
+mysql> desc dept;
++--------+--------------------+------+-----+---------+----------------+
+| Field  | Type               | Null | Key | Default | Extra          |
++--------+--------------------+------+-----+---------+----------------+
+| id     | int                | NO   | PRI | NULL    | auto_increment |
+| deptno | mediumint unsigned | NO   | PRI | 0       |                |
+| dname  | varchar(20)        | NO   |     |         |                |
+| loc    | varchar(13)        | NO   |     |         |                |
++--------+--------------------+------+-----+---------+----------------+
+4 rows in set (0.01 sec)
+
+mysql> desc emp;
++----------+--------------------+------+-----+-------------------+-------------------+
+| Field    | Type               | Null | Key | Default           | Extra             |
++----------+--------------------+------+-----+-------------------+-------------------+
+| id       | int                | NO   | PRI | NULL              | auto_increment    |
+| empno    | mediumint unsigned | NO   | PRI | 0                 |                   |
+| empname  | varchar(20)        | NO   |     |                   |                   |
+| job      | varchar(9)         | NO   |     |                   |                   |
+| mgr      | mediumint unsigned | YES  |     | NULL              |                   |
+| hiredate | timestamp          | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
+| salary   | decimal(7,2)       | NO   |     | NULL              |                   |
+| comm     | decimal(7,2)       | YES  |     | NULL              |                   |
+| deptno   | mediumint unsigned | NO   |     | 0                 |                   |
++----------+--------------------+------+-----+-------------------+-------------------+
+9 rows in set (0.00 sec)
 
 
-## mysql 集群方案
+# 2.使用简单查询语句完成下面的要求:
+#   + 1.显示所有部门名称
+#   + 2.显示所有雇员名及其全年收入(13个月工资加补助)，并指定列名: '年收入'
+mysql> select distinct dname from dept;
++------------+
+| dname      |
++------------+
+| manager    |
+| research   |
+| sales      |
+| operations |
++------------+
+4 rows in set (0.00 sec)
+
+mysql> select empname,(salary+if(comm,comm,0))*13 as '年收入' from emp;
+mysql> select empname,(salary+ifnull(comm,0))*13 as '年收入' from emp;
++---------+-----------+
+| empname | 年收入    |
++---------+-----------+
+| smite   |  10400.00 |
+| allen   |  27300.00 |
+| ward    |  22750.00 |
+| jones   |  38675.00 |
+| martin  |  34450.00 |
+| blake   |  37050.00 |
+| clake   |  31850.00 |
+| scott   |  39000.00 |
+| king    |  65000.00 |
+| turner  |  19500.00 |
+| james   |  12350.00 |
+| ford    |  39000.00 |
+| miller  |  39000.00 |
++---------+-----------+
+13 rows in set (0.00 sec)
+> 三元表达式: if('列名条件','true时的结果','false时的结果')
+> ifnull('列名条件','结果2')：当 列名条件 为 true时返回 列,否则 返回 结果2
 
 
+# 3.限制查询数据
+#   + 1.显示工资超过 2850 的雇员名和工资
+mysql> select empname,salary from emp where salary>2850;
++---------+---------+
+| empname | salary  |
++---------+---------+
+| jones   | 2975.00 |
+| scott   | 3000.00 |
+| king    | 5000.00 |
+| ford    | 3000.00 |
+| miller  | 3000.00 |
++---------+---------+
+5 rows in set (0.00 sec)
+
+#   + 2.显示工资不在 1500 和 2850 之间的所有雇员名和工资
+mysql> select empname,salary from emp where salary<1500 or salary>2850;
+mysql> select empname,salary from emp where not (salary<1500 and salary>2850);
+mysql> select empname,salary from emp where salary not between 1500 and 285
+0;
++---------+---------+
+| empname | salary  |
++---------+---------+
+| smite   |  800.00 |
+| ward    | 1250.00 |
+| jones   | 2975.00 |
+| martin  | 1250.00 |
+| scott   | 3000.00 |
+| king    | 5000.00 |
+| james   |  950.00 |
+| ford    | 3000.00 |
+| miller  | 3000.00 |
++---------+---------+
+9 rows in set (0.00 sec)
+> 在范围1-范围2之间： between 范围1 and 范围2
+> 不在 范围1-范围2 之间的: not between 范围1 and 范围2
+
+#   + 3.显示编号为 7566 的雇员名及其所在的部门号
+mysql> select empname,deptno from emp where empno=7566;
++---------+--------+
+| empname | deptno |
++---------+--------+
+| jones   |     20 |
++---------+--------+
+1 row in set (0.00 sec)
+
+#   + 4.显示部门编号:10、30的工资超过 1500 的雇员名及工资
+mysql> select empname,salary from emp where (deptno=10 or deptno=30) and salary>1500;
+mysql> select empname,salary from emp where deptno in (10,30) and salary>1500;
++---------+---------+
+| empname | salary  |
++---------+---------+
+| allen   | 1800.00 |
+| blake   | 2850.00 |
+| clake   | 2450.00 |
+| king    | 5000.00 |
+| miller  | 3000.00 |
++---------+---------+
+5 rows in set (0.00 sec)
+> in (a1,a2,a3...) => 是其中的某一个...
+
+#   + 5.显示没有上级的雇员名及岗位
+mysql> select empname,job from emp where mgr is NULL;
++---------+-----------+
+| empname | job       |
++---------+-----------+
+| king    | president |
++---------+-----------+
+1 row in set (0.00 sec)
+
+# 4.数据排序
+#   + 显示在 1991年2月1号 到 1991年5月1号 之间雇佣的新雇员名、岗位、雇佣日期，并一雇佣日期进行排序
+mysql> select empname,job,hiredate from emp where hiredate between '1991-02-01' and '1991-05-01' order by hiredate asc;
++---------+----------+---------------------+
+| empname | job      | hiredate            |
++---------+----------+---------------------+
+| allen   | salesman | 1991-02-20 00:00:00 |
+| ward    | salesman | 1991-02-22 00:00:00 |
+| jones   | manager  | 1991-04-02 00:00:00 |
+| scott   | analyst  | 1991-04-19 00:00:00 |
+| blake   | manager  | 1991-05-01 00:00:00 |
++---------+----------+---------------------+
+5 rows in set (0.00 sec)
+
+
+# 5.显示获得补助的所有雇员名，工资及补助，并以工资降序排序
+mysql> select empname,salary,comm from emp where comm is not NULL order by salary desc;
++---------+---------+---------+
+| empname | salary  | comm    |
++---------+---------+---------+
+| allen   | 1800.00 |  300.00 |
+| ward    | 1250.00 |  500.00 |
+| martin  | 1250.00 | 1400.00 |
++---------+---------+---------+
+3 rows in set (0.00 sec)
+
+```
+
+#### 练习题三：
+```bash
+# 1.根据 emp 表 写出正确sql
+#   + 1.选择部门为30的所有员工
+mysql> select empno,empname,job,deptno from emp where deptno=30;
++-------+---------+----------+--------+
+| empno | empname | job      | deptno |
++-------+---------+----------+--------+
+|  7639 | smite   | clerk    |     30 |
+|  7499 | allen   | salesman |     30 |
+|  7521 | ward    | salesman |     30 |
+|  7654 | martin  | salesman |     30 |
+|  7698 | blake   | manager  |     30 |
+|  7844 | turner  | salesman |     30 |
+|  7900 | james   | clerk    |     30 |
++-------+---------+----------+--------+
+7 rows in set (0.00 sec)
+
+#   + 2.列出所有办事员(clerk)的名字，编号和部门编号
+mysql> select empname,empno,deptno,job from emp where job='clerk';
++---------+-------+--------+-------+
+| empname | empno | deptno | job   |
++---------+-------+--------+-------+
+| smite   |  7639 |     30 | clerk |
+| james   |  7900 |     30 | clerk |
+| miller  |  7934 |     10 | clerk |
++---------+-------+--------+-------+
+3 rows in set (0.00 sec)
+
+#   + 3.找出佣金高于薪水的员工
+mysql> select empno,empname,salary,comm from emp where ifnull(comm,0)>salary;
++-------+---------+---------+---------+
+| empno | empname | salary  | comm    |
++-------+---------+---------+---------+
+|  7654 | martin  | 1250.00 | 1400.00 |
++-------+---------+---------+---------+
+1 row in set (0.00 sec)
+
+#   + 4.找出拥挤高于薪水60%的员工
+mysql> select empno,empname,salary,comm from emp where ifnull(comm,0) > salary*0.6;
++-------+---------+---------+---------+
+| empno | empname | salary  | comm    |
++-------+---------+---------+---------+
+|  7654 | martin  | 1250.00 | 1400.00 |
++-------+---------+---------+---------+
+1 row in set (0.00 sec)
+
+#   + 5.找出部门编号为10的所有经理(manager)和部门为30的所有办事员(clerk)的详细资料
+mysql> select empno,empname,deptno,job,salary,hiredate from emp where (deptno=10 and job='manager') or (deptno=30 and job='clerk');
++-------+---------+--------+---------+---------+---------------------+
+| empno | empname | deptno | job     | salary  | hiredate            |
++-------+---------+--------+---------+---------+---------------------+
+|  7639 | smite   |     30 | clerk   |  800.00 | 1990-12-17 00:00:00 |
+|  7782 | clake   |     10 | manager | 2450.00 | 1991-06-09 00:00:00 |
+|  7900 | james   |     30 | clerk   |  950.00 | 1991-12-03 00:00:00 |
++-------+---------+--------+---------+---------+---------------------+
+3 rows in set (0.00 sec)
+
+#   + 6.找出部门编号为10的所有经理(manager)和部门为30的所有办事员(clerk),还有既不是经理又不是办事员但是薪水大于等于2000的所有员工的详细资料
+mysql> select empno,empname,deptno,job,salary,hiredate from emp where (deptno=10 and job='manager') or (deptno=30 and job='clerk') or (job not in('manager','clerk') and salary >= 2000);
++-------+---------+--------+-----------+---------+---------------------+
+| empno | empname | deptno | job       | salary  | hiredate            |
++-------+---------+--------+-----------+---------+---------------------+
+|  7639 | smite   |     30 | clerk     |  800.00 | 1990-12-17 00:00:00 |
+|  7782 | clake   |     10 | manager   | 2450.00 | 1991-06-09 00:00:00 |
+|  7788 | scott   |     20 | analyst   | 3000.00 | 1991-04-19 00:00:00 |
+|  7839 | king    |     10 | president | 5000.00 | 1990-04-19 00:00:00 |
+|  7900 | james   |     30 | clerk     |  950.00 | 1991-12-03 00:00:00 |
+|  7902 | ford    |     20 | analyst   | 3000.00 | 1991-12-03 00:00:00 |
++-------+---------+--------+-----------+---------+---------------------+
+6 rows in set (0.00 sec)
+
+#   + 7.找出有奖金的员工的不同工作
+mysql> select distinct job from emp where comm is not NULL;
++----------+
+| job      |
++----------+
+| salesman |
++----------+
+1 row in set (0.00 sec)
+
+#   + 8.找出没有奖金或奖金低于 100 的员工
+mysql> select empno,empname,deptno,job,comm from emp where comm is NULL or ifnull(comm,0) < 100
+;
++-------+---------+--------+-----------+------+
+| empno | empname | deptno | job       | comm |
++-------+---------+--------+-----------+------+
+|  7639 | smite   |     30 | clerk     | NULL |
+|  7566 | jones   |     20 | manager   | NULL |
+|  7698 | blake   |     30 | manager   | NULL |
+|  7782 | clake   |     10 | manager   | NULL |
+|  7788 | scott   |     20 | analyst   | NULL |
+|  7839 | king    |     10 | president | NULL |
+|  7844 | turner  |     30 | salesman  | NULL |
+|  7900 | james   |     30 | clerk     | NULL |
+|  7902 | ford    |     20 | analyst   | NULL |
+|  7934 | miller  |     10 | clerk     | NULL |
++-------+---------+--------+-----------+------+
+10 rows in set (0.00 sec)
+
+#   + 9.找出各月倒数第3天雇用的所有员工
+mysql> select empno,empname,hiredate from emp where month(date_add(hiredate,interval 3 day))-month(hiredate)=1;
++-------+---------+---------------------+
+| empno | empname | hiredate            |
++-------+---------+---------------------+
+|  7654 | martin  | 1991-09-28 00:00:00 |
++-------+---------+---------------------+
+1 row in set (0.00 sec)
+
+#   + 10.找出 出早于12年前受雇佣的员工(入职时间超过12年)
+#        入职时间--->---+----->----+工作了12年-------now()
+mysql> select empno,empname,hiredate,job from emp where date_add(hiredate, interval 12 year) <
+now();
++-------+---------+---------------------+-----------+
+| empno | empname | hiredate            | job       |
++-------+---------+---------------------+-----------+
+|  7639 | smite   | 1990-12-17 00:00:00 | clerk     |
+|  7499 | allen   | 1991-02-20 00:00:00 | salesman  |
+|  7521 | ward    | 1991-02-22 00:00:00 | salesman  |
+|  7566 | jones   | 1991-04-02 00:00:00 | manager   |
+|  7654 | martin  | 1991-09-28 00:00:00 | salesman  |
+|  7698 | blake   | 1991-05-01 00:00:00 | manager   |
+|  7782 | clake   | 1991-06-09 00:00:00 | manager   |
+|  7788 | scott   | 1991-04-19 00:00:00 | analyst   |
+|  7839 | king    | 1990-04-19 00:00:00 | president |
+|  7844 | turner  | 1991-09-08 00:00:00 | salesman  |
+|  7900 | james   | 1991-12-03 00:00:00 | clerk     |
+|  7902 | ford    | 1991-12-03 00:00:00 | analyst   |
+|  7934 | miller  | 1992-01-23 00:00:00 | clerk     |
++-------+---------+---------------------+-----------+
+13 rows in set (0.00 sec)
+
+#   + 11.以首写字母大写的方式显示所有员工的姓名
+mysql> select concat(substring(ucase(empname),1,1),substring(empname,2)) as uc_empname  from emp;
++------------+
+| uc_empname |
++------------+
+| Smite      |
+| Allen      |
+| Ward       |
+| Jones      |
+| Martin     |
+| Blake      |
+| Clake      |
+| Scott      |
+| King       |
+| Turner     |
+| James      |
+| Ford       |
+| Miller     |
++------------+
+13 rows in set (0.01 sec)
+
+#   + 12.显示正好为5个字符的员工的姓名
+mysql> select empname from emp where length(empname)=5;
++---------+
+| empname |
++---------+
+| smite   |
+| allen   |
+| jones   |
+| blake   |
+| clake   |
+| scott   |
+| james   |
++---------+
+7 rows in set (0.00 sec)
+
+```
+
+#### 练习题四
+```bash
+# 1.显示不带有'r'的员工的姓名
+mysql> select empname from emp where empname not like '%r%';
++---------+
+| empname |
++---------+
+| smite   |
+| allen   |
+| jones   |
+| blake   |
+| clake   |
+| scott   |
+| king    |
+| james   |
++---------+
+8 rows in set (0.00 sec)
+
+
+# 2.显示所有员工姓名的前三个字符
+mysql> select substring(empname,1,3) from emp;
++------------------------+
+| substring(empname,1,3) |
++------------------------+
+| smi                    |
+| all                    |
+| war                    |
+| jon                    |
+| mar                    |
+| bla                    |
+| cla                    |
+| sco                    |
+| kin                    |
+| tur                    |
+| jam                    |
+| for                    |
+| mil                    |
++------------------------+
+13 rows in set (0.00 sec)
+
+mysql> select left(empname,3) from emp;
++-----------------+
+| left(empname,3) |
++-----------------+
+| smi             |
+| all             |
+| war             |
+| jon             |
+| mar             |
+| bla             |
+| cla             |
+| sco             |
+| kin             |
+| tur             |
+| jam             |
+| for             |
+| mil             |
++-----------------+
+13 rows in set (0.00 sec)
+
+
+# 3.显示所有员工的姓名，用`A`的替换所有'a'
+mysql> select replace(empname, 'a', 'A') from emp;
++----------------------------+
+| replace(empname, 'a', 'A') |
++----------------------------+
+| smite                      |
+| Allen                      |
+| wArd                       |
+| jones                      |
+| mArtin                     |
+| blAke                      |
+| clAke                      |
+| scott                      |
+| king                       |
+| turner                     |
+| jAmes                      |
+| ford                       |
+| miller                     |
++----------------------------+
+13 rows in set (0.00 sec)
+
+
+# 4.显示满30年服务年限的员工的姓名和受雇日期
+mysql> select empname,hiredate from emp where date_add(hiredate, interval 30 year) <= now();
++---------+---------------------+
+| empname | hiredate            |
++---------+---------------------+
+| smite   | 1990-12-17 00:00:00 |
+| allen   | 1991-02-20 00:00:00 |
+| ward    | 1991-02-22 00:00:00 |
+| jones   | 1991-04-02 00:00:00 |
+| blake   | 1991-05-01 00:00:00 |
+| clake   | 1991-06-09 00:00:00 |
+| scott   | 1991-04-19 00:00:00 |
+| king    | 1990-04-19 00:00:00 |
++---------+---------------------+
+8 rows in set (0.01 sec)
+
+
+# 5.显示员工的详细资料，按照姓名排序
+mysql> select * from emp order by empname;
++----+-------+---------+-----------+------+---------------------+---------+---------+--------+
+| id | empno | empname | job       | mgr  | hiredate            | salary  | comm    | deptno |
++----+-------+---------+-----------+------+---------------------+---------+---------+--------+
+|  2 |  7499 | allen   | salesman  | 7698 | 1991-02-20 00:00:00 | 1800.00 |  300.00 |     30 |
+|  6 |  7698 | blake   | manager   | 7839 | 1991-05-01 00:00:00 | 2850.00 |    NULL |     30 |
+|  7 |  7782 | clake   | manager   | 7839 | 1991-06-09 00:00:00 | 2450.00 |    NULL |     10 |
+| 12 |  7902 | ford    | analyst   | 7566 | 1991-12-03 00:00:00 | 3000.00 |    NULL |     20 |
+| 11 |  7900 | james   | clerk     | 7698 | 1991-12-03 00:00:00 |  950.00 |    NULL |     30 |
+|  4 |  7566 | jones   | manager   | 7639 | 1991-04-02 00:00:00 | 2975.00 |    NULL |     20 |
+|  9 |  7839 | king    | president | NULL | 1990-04-19 00:00:00 | 5000.00 |    NULL |     10 |
+|  5 |  7654 | martin  | salesman  | 7898 | 1991-09-28 00:00:00 | 1250.00 | 1400.00 |     30 |
+| 13 |  7934 | miller  | clerk     | 7782 | 1992-01-23 00:00:00 | 3000.00 |    NULL |     10 |
+|  8 |  7788 | scott   | analyst   | 7566 | 1991-04-19 00:00:00 | 3000.00 |    NULL |     20 |
+|  1 |  7639 | smite   | clerk     | 7902 | 1990-12-17 00:00:00 |  800.00 |    NULL |     30 |
+| 10 |  7844 | turner  | salesman  | 7698 | 1991-09-08 00:00:00 | 1500.00 |    NULL |     30 |
+|  3 |  7521 | ward    | salesman  | 7698 | 1991-02-22 00:00:00 | 1250.00 |  500.00 |     30 |
++----+-------+---------+-----------+------+---------------------+---------+---------+--------+
+13 rows in set (0.00 sec)
+
+# 6.显示员工的姓名和受雇日期，根据其服务年限，将最老的员工排在最前面
+mysql> select empname,hiredate from emp order by hiredate;
++---------+---------------------+
+| empname | hiredate            |
++---------+---------------------+
+| king    | 1990-04-19 00:00:00 |
+| smite   | 1990-12-17 00:00:00 |
+| allen   | 1991-02-20 00:00:00 |
+| ward    | 1991-02-22 00:00:00 |
+| jones   | 1991-04-02 00:00:00 |
+| scott   | 1991-04-19 00:00:00 |
+| blake   | 1991-05-01 00:00:00 |
+| clake   | 1991-06-09 00:00:00 |
+| turner  | 1991-09-08 00:00:00 |
+| martin  | 1991-09-28 00:00:00 |
+| james   | 1991-12-03 00:00:00 |
+| ford    | 1991-12-03 00:00:00 |
+| miller  | 1992-01-23 00:00:00 |
++---------+---------------------+
+13 rows in set (0.00 sec)
+
+# 7.显示所有员工的姓名、工作、薪水 按照工作降序排序，若工作相同则按照薪水排序
+mysql> select empname,job,salary from emp order by job desc, salary asc;
++---------+-----------+---------+
+| empname | job       | salary  |
++---------+-----------+---------+
+| ward    | salesman  | 1250.00 |
+| martin  | salesman  | 1250.00 |
+| turner  | salesman  | 1500.00 |
+| allen   | salesman  | 1800.00 |
+| king    | president | 5000.00 |
+| clake   | manager   | 2450.00 |
+| blake   | manager   | 2850.00 |
+| jones   | manager   | 2975.00 |
+| smite   | clerk     |  800.00 |
+| james   | clerk     |  950.00 |
+| miller  | clerk     | 3000.00 |
+| scott   | analyst   | 3000.00 |
+| ford    | analyst   | 3000.00 |
++---------+-----------+---------+
+13 rows in set (0.00 sec)
+
+
+# 8.显示所有员工的姓名、加入公司的年份、月份、按照受雇日期所在月排序，若月份相同则将最年份的员工挂排在最前面
+mysql> select empname,year(hiredate) as hire_year,month(hiredate) as hire_month from emp order by hire_month asc, hire_year asc; 
++---------+-----------+------------+
+| empname | hire_year | hire_month |
++---------+-----------+------------+
+| miller  |      1992 |          1 |
+| allen   |      1991 |          2 |
+| ward    |      1991 |          2 |
+| king    |      1990 |          4 |
+| jones   |      1991 |          4 |
+| scott   |      1991 |          4 |
+| blake   |      1991 |          5 |
+| clake   |      1991 |          6 |
+| martin  |      1991 |          9 |
+| turner  |      1991 |          9 |
+| smite   |      1990 |         12 |
+| james   |      1991 |         12 |
+| ford    |      1991 |         12 |
++---------+-----------+------------+
+13 rows in set (0.00 sec)
+
+# 9.显示一个月为30天的情况所有员工的日新金(忽略余数)
+#   向下取整函数: floor()
+mysql> select empname,salary,floor(salary/30) as day_salary from emp;
++---------+---------+------------+
+| empname | salary  | day_salary |
++---------+---------+------------+
+| smite   |  800.00 |         26 |
+| allen   | 1800.00 |         60 |
+| ward    | 1250.00 |         41 |
+| jones   | 2975.00 |         99 |
+| martin  | 1250.00 |         41 |
+| blake   | 2850.00 |         95 |
+| clake   | 2450.00 |         81 |
+| scott   | 3000.00 |        100 |
+| king    | 5000.00 |        166 |
+| turner  | 1500.00 |         50 |
+| james   |  950.00 |         31 |
+| ford    | 3000.00 |        100 |
+| miller  | 3000.00 |        100 |
++---------+---------+------------+
+13 rows in set (0.00 sec)
+
+
+# 10.找出在任何年份的2月受雇的所有员工
+mysql> select empno,empname,hiredate from emp where month(hiredate)=2;
++-------+---------+---------------------+
+| empno | empname | hiredate            |
++-------+---------+---------------------+
+|  7499 | allen   | 1991-02-20 00:00:00 |
+|  7521 | ward    | 1991-02-22 00:00:00 |
++-------+---------+---------------------+
+2 rows in set (0.00 sec)
+
+# 11.对于每一个员工，显示其加入公司的天数
+mysql> select empno,empname,hiredate,datediff(now(),hiredate) as work_day from emp;
++-------+---------+---------------------+----------+
+| empno | empname | hiredate            | work_day |
++-------+---------+---------------------+----------+
+|  7639 | smite   | 1990-12-17 00:00:00 |    11168 |
+|  7499 | allen   | 1991-02-20 00:00:00 |    11103 |
+|  7521 | ward    | 1991-02-22 00:00:00 |    11101 |
+|  7566 | jones   | 1991-04-02 00:00:00 |    11062 |
+|  7654 | martin  | 1991-09-28 00:00:00 |    10883 |
+|  7698 | blake   | 1991-05-01 00:00:00 |    11033 |
+|  7782 | clake   | 1991-06-09 00:00:00 |    10994 |
+|  7788 | scott   | 1991-04-19 00:00:00 |    11045 |
+|  7839 | king    | 1990-04-19 00:00:00 |    11410 |
+|  7844 | turner  | 1991-09-08 00:00:00 |    10903 |
+|  7900 | james   | 1991-12-03 00:00:00 |    10817 |
+|  7902 | ford    | 1991-12-03 00:00:00 |    10817 |
+|  7934 | miller  | 1992-01-23 00:00:00 |    10766 |
++-------+---------+---------------------+----------+
+13 rows in set (0.00 sec)
+
+
+# 12.显示姓名字段的任何位置包含 'a' 的所有员工的姓名
+mysql> select empno,empname from emp where empname like '%a%';
++-------+---------+
+| empno | empname |
++-------+---------+
+|  7499 | allen   |
+|  7521 | ward    |
+|  7654 | martin  |
+|  7698 | blake   |
+|  7782 | clake   |
+|  7900 | james   |
++-------+---------+
+6 rows in set (0.00 sec)
+
+# 13.以年月日的方式显示所有员工的服务年限(大概)
+mysql> select empno,empname,datediff(now(),hiredate) as '工作总天数',floor(datediff(now(),hiredate)/365) as
+'工作年份',floor(datediff(now(),hiredate)%365/30) as '工作月份',datediff(now(),hiredate)%30 as '工 天数 ' from emp;
++-------+---------+-----------------+--------------+--------------+--------------+
+| empno | empname | 工作总天数      | 工作年份     | 工作月份     | 工作天数     |
++-------+---------+-----------------+--------------+--------------+--------------+
+|  7639 | smite   |           11168 |           30 |            7 |            8 |
+|  7499 | allen   |           11103 |           30 |            5 |            3 |
+|  7521 | ward    |           11101 |           30 |            5 |            1 |
+|  7566 | jones   |           11062 |           30 |            3 |           22 |
+|  7654 | martin  |           10883 |           29 |            9 |           23 |
+|  7698 | blake   |           11033 |           30 |            2 |           23 |
+|  7782 | clake   |           10994 |           30 |            1 |           14 |
+|  7788 | scott   |           11045 |           30 |            3 |            5 |
+|  7839 | king    |           11410 |           31 |            3 |           10 |
+|  7844 | turner  |           10903 |           29 |           10 |           13 |
+|  7900 | james   |           10817 |           29 |            7 |           17 |
+|  7902 | ford    |           10817 |           29 |            7 |           17 |
+|  7934 | miller  |           10766 |           29 |            6 |           26 |
++-------+---------+-----------------+--------------+--------------+--------------+
+13 rows in set (0.00 sec)
+
+```
+
+#### 练习题五
+```bash
+# 根据 emp表、dept表，工资=薪水+佣金 写出正确的sql
+#   1.列出至少有一个员工的所有部门
+#     按照部门分组,过滤
+mysql> select deptno,count(*) as `person_num` from emp group by deptno having `person_num`>1;
++--------+------------+
+| deptno | person_num |
++--------+------------+
+|     30 |          7 |
+|     20 |          3 |
+|     10 |          3 |
++--------+------------+
+3 rows in set (0.00 sec)
+
+#   2.列出薪水比 'martin' 多的所有员工
+#     子查询
+mysql> select deptno,empno,empname,job,salary from emp where salary>(select salary from emp where empname='martin');
++--------+-------+---------+-----------+---------+
+| deptno | empno | empname | job       | salary  |
++--------+-------+---------+-----------+---------+
+|     30 |  7499 | allen   | salesman  | 1800.00 |
+|     20 |  7566 | jones   | manager   | 2975.00 |
+|     30 |  7698 | blake   | manager   | 2850.00 |
+|     10 |  7782 | clake   | manager   | 2450.00 |
+|     20 |  7788 | scott   | analyst   | 3000.00 |
+|     10 |  7839 | king    | president | 5000.00 |
+|     30 |  7844 | turner  | salesman  | 1500.00 |
+|     20 |  7902 | ford    | analyst   | 3000.00 |
+|     10 |  7934 | miller  | clerk     | 3000.00 |
++--------+-------+---------+-----------+---------+
+9 rows in set (0.00 sec)
+
+#   3.列出受雇日期 晚于 其直接上级受雇日期的所有员工
+#     自连接? emp 表当做2张表, leader, work
+#     条件一：员工的入职时间 大于 上司入职时间
+#     条件二: 员工的上司编号 = 上司的编号
+mysql> select worker.empno,worker.empname,worker.hiredate,concat(worker.mgr,'_',leader.empname) as mgr_name,leader.hiredate as mgr_hiredate from emp worker,emp leader where worker.hiredate > leader.hiredate and worker.mgr=leader.empno;
++-------+---------+---------------------+------------+---------------------+
+| empno | empname | hiredate            | mgr_name   | mgr_hiredate        |
++-------+---------+---------------------+------------+---------------------+
+|  7566 | jones   | 1991-04-02 00:00:00 | 7639_smite | 1990-12-17 00:00:00 |
+|  7902 | ford    | 1991-12-03 00:00:00 | 7566_jones | 1991-04-02 00:00:00 |
+|  7788 | scott   | 1991-04-19 00:00:00 | 7566_jones | 1991-04-02 00:00:00 |
+|  7900 | james   | 1991-12-03 00:00:00 | 7698_blake | 1991-05-01 00:00:00 |
+|  7844 | turner  | 1991-09-08 00:00:00 | 7698_blake | 1991-05-01 00:00:00 |
+|  7934 | miller  | 1992-01-23 00:00:00 | 7782_clake | 1991-06-09 00:00:00 |
+|  7782 | clake   | 1991-06-09 00:00:00 | 7839_king  | 1990-04-19 00:00:00 |
+|  7698 | blake   | 1991-05-01 00:00:00 | 7839_king  | 1990-04-19 00:00:00 |
++-------+---------+---------------------+------------+---------------------+
+8 rows in set (0.00 sec)
+
+
+#   4.列出部门名称和这些部门的员工信息，同时列出这些没有员工的部门
+#     '同时列出这些没有员工的部门' => 要外连接
+mysql> select emp.deptno,dname,emp.job,emp.empno,emp.empname from dept left join emp on emp.deptno=dept.deptno;
++--------+------------+-----------+-------+---------+
+| deptno | dname      | job       | empno | empname |
++--------+------------+-----------+-------+---------+
+|     10 | manager    | clerk     |  7934 | miller  |
+|     10 | manager    | president |  7839 | king    |
+|     10 | manager    | manager   |  7782 | clake   |
+|     20 | research   | analyst   |  7902 | ford    |
+|     20 | research   | analyst   |  7788 | scott   |
+|     20 | research   | manager   |  7566 | jones   |
+|     30 | sales      | clerk     |  7900 | james   |
+|     30 | sales      | salesman  |  7844 | turner  |
+|     30 | sales      | manager   |  7698 | blake   |
+|     30 | sales      | salesman  |  7654 | martin  |
+|     30 | sales      | salesman  |  7521 | ward    |
+|     30 | sales      | salesman  |  7499 | allen   |
+|     30 | sales      | clerk     |  7639 | smite   |
+|   NULL | operations | NULL      |  NULL | NULL    |
++--------+------------+-----------+-------+---------+
+14 rows in set (0.00 sec)
+
+#   5.列出所有'clerk'办事员的姓名及其部门名
+#     emp、dept 2表的关联条件: deptno
+mysql> select empname,emp.job,emp.deptno,dname from emp,dept where job='clerk' and emp.deptno=dept.deptno;
++---------+-------+--------+---------+
+| empname | job   | deptno | dname   |
++---------+-------+--------+---------+
+| miller  | clerk |     10 | manager |
+| james   | clerk |     30 | sales   |
+| smite   | clerk |     30 | sales   |
++---------+-------+--------+---------+
+3 rows in set (0.00 sec)
+
+
+#   6.列出最低薪水大于1500的各种工作
+#     各种工作 => 按照 工作 分组
+#     最低工资 => min(salary)
+mysql> select distinct min(salary) as min_sal,emp.job from emp group by job having min_sal > 1500;
++---------+-----------+
+| min_sal | job       |
++---------+-----------+
+| 2450.00 | manager   |
+| 3000.00 | analyst   |
+| 5000.00 | president |
++---------+-----------+
+3 rows in set (0.00 sec)
+
+
+#   7.列出在部门'sales'工作的员工的姓名
+mysql> select empname,dname from emp,dept where dept.dname='sales' and emp.deptno=dept.deptno;
++---------+-------+
+| empname | dname |
++---------+-------+
+| smite   | sales |
+| allen   | sales |
+| ward    | sales |
+| martin  | sales |
+| blake   | sales |
+| turner  | sales |
+| james   | sales |
++---------+-------+
+7 rows in set (0.00 sec)
+
+
+#   8.列出薪水高于公司平均薪水的所有员工
+mysql> select empno,empname,salary,deptno,job from emp where salary > (select avg(salary) as avg_sal from emp
+);
++-------+---------+---------+--------+-----------+
+| empno | empname | salary  | deptno | job       |
++-------+---------+---------+--------+-----------+
+|  7566 | jones   | 2975.00 |     20 | manager   |
+|  7698 | blake   | 2850.00 |     30 | manager   |
+|  7782 | clake   | 2450.00 |     10 | manager   |
+|  7788 | scott   | 3000.00 |     20 | analyst   |
+|  7839 | king    | 5000.00 |     10 | president |
+|  7902 | ford    | 3000.00 |     20 | analyst   |
+|  7934 | miller  | 3000.00 |     10 | clerk     |
++-------+---------+---------+--------+-----------+
+7 rows in set (0.00 sec)
+
+```
+
+#### 练习题六
+```bash
+# emp员工表、dept部门表, 工资=薪水+奖金
+# 1.查询与 'scott' 从事相同工作的所有员工
+mysql> select empno,empname,salary,job from emp where job=(select job from emp where empname='scott');
++-------+---------+---------+---------+
+| empno | empname | salary  | job     |
++-------+---------+---------+---------+
+|  7788 | scott   | 3000.00 | analyst |
+|  7902 | ford    | 3000.00 | analyst |
++-------+---------+---------+---------+
+2 rows in set (0.00 sec)
+
+
+# 2.列出薪水高于30号部门的所有员工的薪水的员工的姓名和薪水
+#   先查出 30号部门的最高工资,
+mysql> select empname,salary,deptno,job from emp where salary > (select max(salary) from emp where deptno=
+30);
++---------+---------+--------+-----------+
+| empname | salary  | deptno | job       |
++---------+---------+--------+-----------+
+| jones   | 2975.00 |     20 | manager   |
+| scott   | 3000.00 |     20 | analyst   |
+| king    | 5000.00 |     10 | president |
+| ford    | 3000.00 |     20 | analyst   |
+| miller  | 3000.00 |     10 | clerk     |
++---------+---------+--------+-----------+
+5 rows in set (0.00 sec)
+
+
+# 3.列出在每个部门工作的员工数量、平均工资和平均服务期限
+#   每个部门 => 部门分组 => group by deptno
+mysql> select deptno,count(empno) as 'dept_nums',avg(salary),format(avg(datediff(now(),hiredate)),2) as '平 
+工作天数' from emp group by deptno;
++--------+-----------+-------------+--------------------+
+| deptno | dept_nums | avg(salary) | 平均工作天数       |
++--------+-----------+-------------+--------------------+
+|     30 |         7 | 1485.714286 | 11,001.14          |
+|     20 |         3 | 2991.666667 | 10,974.67          |
+|     10 |         3 | 3483.333333 | 11,056.67          |
++--------+-----------+-------------+--------------------+
+3 rows in set (0.00 sec)
+
+
+# 4.列出所有员工的姓名、部门名、工资
+mysql> select empname,salary,dname,emp.deptno from emp,dept where emp.deptno=dept.deptno;
++---------+---------+----------+--------+
+| empname | salary  | dname    | deptno |
++---------+---------+----------+--------+
+| smite   |  800.00 | sales    |     30 |
+| allen   | 1800.00 | sales    |     30 |
+| ward    | 1250.00 | sales    |     30 |
+| jones   | 2975.00 | research |     20 |
+| martin  | 1250.00 | sales    |     30 |
+| blake   | 2850.00 | sales    |     30 |
+| clake   | 2450.00 | manager  |     10 |
+| scott   | 3000.00 | research |     20 |
+| king    | 5000.00 | manager  |     10 |
+| turner  | 1500.00 | sales    |     30 |
+| james   |  950.00 | sales    |     30 |
+| ford    | 3000.00 | research |     20 |
+| miller  | 3000.00 | manager  |     10 |
++---------+---------+----------+--------+
+13 rows in set (0.00 sec)
+
+
+# 5.列出所有部门的详细信息和部门人数
+#   子查询 当作为 表
+mysql> select dept.*,dept_nums from dept,(select deptno,count(*) as 'dept_nums' from emp group by deptno) tmp
+ where dept.deptno = tmp.deptno;
++----+--------+----------+-----------+-----------+
+| id | deptno | dname    | loc       | dept_nums |
++----+--------+----------+-----------+-----------+
+|  1 |     10 | manager  | beijing   |         3 |
+|  2 |     20 | research | shanghei  |         3 |
+|  3 |     30 | sales    | guangzhou |         7 |
++----+--------+----------+-----------+-----------+
+3 rows in set (0.00 sec)
+
+
+# 6.列出所有工作的最低工资
+mysql> select job,min(salary) from emp group by job;
++-----------+-------------+
+| job       | min(salary) |
++-----------+-------------+
+| clerk     |      800.00 |
+| salesman  |     1250.00 |
+| manager   |     2450.00 |
+| analyst   |     3000.00 |
+| president |     5000.00 |
++-----------+-------------+
+5 rows in set (0.00 sec)
+
+
+# 7.列出职务:manage 的最低工资
+mysql> select job,min(salary) from emp where job='manager';
++---------+-------------+
+| job     | min(salary) |
++---------+-------------+
+| manager |     2450.00 |
++---------+-------------+
+1 row in set (0.00 sec)
+
+
+# 8.列出所有员工的年工资、按照年薪从低到高排序
+mysql> select empno,empname,(salary+ifnull(comm,0))*12 as 'year_salary' from emp order by year_salary asc;
++-------+---------+-------------+
+| empno | empname | year_salary |
++-------+---------+-------------+
+|  7639 | smite   |     9600.00 |
+|  7900 | james   |    11400.00 |
+|  7844 | turner  |    18000.00 |
+|  7521 | ward    |    21000.00 |
+|  7499 | allen   |    25200.00 |
+|  7782 | clake   |    29400.00 |
+|  7654 | martin  |    31800.00 |
+|  7698 | blake   |    34200.00 |
+|  7566 | jones   |    35700.00 |
+|  7788 | scott   |    36000.00 |
+|  7902 | ford    |    36000.00 |
+|  7934 | miller  |    36000.00 |
+|  7839 | king    |    60000.00 |
++-------+---------+-------------+
+13 rows in set (0.00 sec)
+
+```
+
+#### 练习题七
+```bash
+# 设学校环境如下:
+#   1.一个系有若干个专业
+#   2.每个专业一年只招一个班
+#   3.每个班有若干个学生
+# 先要建立 系、专业、班级的数据库, 关系模式: 
+#    department(系号departmengid, 系名deptname)
+#		 class(班名classid, 专业名subject, 系名deptname, 入学时间enrolltime, 人数num)
+#    stu(学号studentid, 姓名name, age年龄,班号classid)
+# 要求:
+#  1.根据要求建库建表
+#    每个表的主外键
+#    deptname是唯一的
+#		 学生姓名不能为空
+#  2.插入如下数据
+#    department:
+#		 		001 数学
+#		 		002 计算机
+#		 		003 化学
+#		 		004 中文
+#		 		005 经济
+#    class:
+#		 		101 软件       计算机  1995  20
+#		 		102 微电子     计算机  1996  30
+#		 		111 无机化学   化学    1995  29
+#		 		112 高分子化学 化学    1996  25
+#		 		121 统计数学   数学    1995  20
+#		 		131 现代语言   语文    1996  20
+#		 		141 国际贸易   经济    1997  30
+#		 		142 国际金融   经济    1995  14
+#    stu:
+#		 		8101 张三  18  101
+#		 		8102 王玲  18  121
+#		 		8103 李飞  18  131
+#		 		8105 找死  18  102
+#		 		8109 李可  18  141
+#		 		8110 张飞  18  142
+#		 		8201 周瑜  18  111
+#		 		8302 王亮  18  112
+#       8203 钱四  16  111
+#		 		8305 董青  18  102
+#		 		8409 赵龙  18  101
+#		 		8511 李丽  18  142
+mysql> create table if not exists department(department varchar(12) primary key, deptname varchar(64) unique  not null) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.03 sec)
+
+mysql> create table if not exists `class`(classid int primary key,subject varchar(32) not null default '', deptname varchar(64), enrolltime int not null default 1995,num int not null default 0) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.02 sec)
+
+mysql> alter table class add foreign key (deptname) references department(deptname); 
+Query OK, 0 rows affected (0.05 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> create table if not exists stu(studentid int primary key, name varchar(32) not null, age int not null, classid int,foreign key (classid) references class(classid)) engine innodb character set utf8 collate utf8_general_ci;
+Query OK, 0 rows affected, 2 warnings (0.03 sec)
+
+mysql> insert into department values('001','数学'),('002','计算机'),('003','化学'),('004','中文'),('005','经济');
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> insert into `class` values
+       (101,'软件','计算机',1995,20),
+       (102,'微电子','计算机',1996,30),
+       (111,'无机化学','化学',1995,29),
+       (112,'高分子化学','化学',1996,25),
+       (121,'统计数学','数学',1995,20),
+       (131,'现代语言','中文',199,20),
+       (141,'国际贸易','经济',1997,30),
+       (142,'国际金融','经济',1995,14);
+Query OK, 8 rows affected (0.00 sec)
+Records: 8  Duplicates: 0  Warnings: 0
+
+mysql> insert into `stu` values
+       (8101,'张三',18,101),
+       (8102,'王玲',18,121),
+       (8103,'李飞',18,131),
+       (8105,'赵四',18,102),
+       (8109,'李可',18,141),
+       (8110,'张飞',18,142),
+       (8201,'周瑜',18,111),
+       (8302,'王亮',18,112),
+       (8203,'钱四',16,111),
+       (8305,'董青',18,102),
+       (8409,'赵龙',18,101),
+       (8511,'李丽',18,142);
+Query OK, 12 rows affected (0.01 sec)
+Records: 12  Duplicates: 0  Warnings: 0
+
+
+# 完成以下需求:
+# 1.找出所有姓李的学生
+mysql> select * from `stu` where name like '李%';
++-----------+--------+-----+---------+
+| studentid | name   | age | classid |
++-----------+--------+-----+---------+
+|      8103 | 李飞   |  18 |     131 |
+|      8109 | 李可   |  18 |     141 |
+|      8511 | 李丽   |  18 |     142 |
++-----------+--------+-----+---------+
+3 rows in set (0.00 sec)
+
+
+# 2.找出所有开设超过1个专业的系的名字
+mysql> select deptname,count(deptname) as dept_num from class group by deptname having dept_num > 1;
++-----------+----------+
+| deptname  | dept_num |
++-----------+----------+
+| 化学      |        2 |
+| 经济      |        2 |
+| 计算机    |        2 |
++-----------+----------+
+3 rows in set (0.00 sec)
+
+
+# 3.列出人数大于等于30的系的编号和名字
+#   1.系下有多个班，所以人数需要根据系进行分组统计
+#   2.再查出编号和名字
+mysql> select department.*,total from department,(select deptname,sum(num) as total
+from class group by deptname having total>=30) temp where department.deptname=temp.deptname;
++--------------+-----------+-------+
+| departmentid | deptname  | total |
++--------------+-----------+-------+
+| 003          | 化学      |    54 |
+| 005          | 经济      |    44 |
+| 002          | 计算机    |    50 |
++--------------+-----------+-------+
+3 rows in set (0.00 sec)
+
+
+# 4.学校有新增一个系：物理系,编号为:006
+mysql> insert into department values('006','物理系');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from department;
++------------+-----------+
+| department | deptname  |
++------------+-----------+
+| 004        | 中文      |
+| 003        | 化学      |
+| 001        | 数学      |
+| 006        | 物理系    |
+| 005        | 经济      |
+| 002        | 计算机    |
++------------+-----------+
+6 rows in set (0.00 sec)
+
+
+# 5.学生张三退学了，请更新数据表
+#   1.张三对应的班级表人数先减一
+#   2.学生表删除张三的记录
+#   (使用事务来控制)
+mysql> start transaction;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> update class set num=num-1 where classid=(select classid from stu where name='张三');
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> delete from stu where name='张三';
+Query OK, 1 row affected (0.00 sec)
+
+mysql> commit;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from stu;
++-----------+--------+-----+---------+
+| studentid | name   | age | classid |
++-----------+--------+-----+---------+
+|      8102 | 王玲   |  18 |     121 |
+|      8103 | 李飞   |  18 |     131 |
+|      8105 | 赵四   |  18 |     102 |
+|      8109 | 李可   |  18 |     141 |
+|      8110 | 张飞   |  18 |     142 |
+|      8201 | 周瑜   |  18 |     111 |
+|      8203 | 钱四   |  16 |     111 |
+|      8302 | 王亮   |  18 |     112 |
+|      8305 | 董青   |  18 |     102 |
+|      8409 | 赵龙   |  18 |     101 |
+|      8511 | 李丽   |  18 |     142 |
++-----------+--------+-----+---------+
+11 rows in set (0.00 sec)
+
+mysql> select * from class;
++---------+-----------------+-----------+------------+-----+
+| classid | subject         | deptname  | enrolltime | num |
++---------+-----------------+-----------+------------+-----+
+|     101 | 软件            | 计算机    |       1995 |  19 |
+|     102 | 微电子          | 计算机    |       1996 |  30 |
+|     111 | 无机化学        | 化学      |       1995 |  29 |
+|     112 | 高分子化学      | 化学      |       1996 |  25 |
+|     121 | 统计数学        | 数学      |       1995 |  20 |
+|     131 | 现代语言        | 中文      |        199 |  20 |
+|     141 | 国际贸易        | 经济      |       1997 |  30 |
+|     142 | 国际金融        | 经济      |       1995 |  14 |
++---------+-----------------+-----------+------------+-----+
+8 rows in set (0.00 sec)
+
+```
+
+
+## mysql-基础完结
