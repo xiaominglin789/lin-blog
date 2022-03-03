@@ -4076,7 +4076,7 @@ Query OK, 0 rows affected (0.01 sec)
 		+ drop user [用户名]@[ip地址];
 
 #### 权限管理（授权）
-1. 授权: gant [权限1],[权限2],[权限3],... on 数据库.对象名 to 用户名 @ 登录位置
+1. `授权: gant [权限1],[权限2],[权限3],... on 数据库.对象名 to '用户名'@'登录位置' [identified by '密码'];`
 		- on *.* => 代表所有数据库的所有数据对象(包括所有的 表、视图、触发器)
 		- on 数据库.* => 针对 某个的数据库下的所有数据对象(表、视图、触发器)
 		- on 数据库.对象 => 指定 数据库.对象
@@ -4092,9 +4092,18 @@ Query OK, 0 rows affected (0.01 sec)
 	  - index:  允许使用 create index 和 drop index
 	  - create user: 允许创建用户
 	  - create view: 允许创建视图
+	  - ...
+	 [identified by '新密码'] 可省略,当你加上时:
+	 	- 如果用户存在, 则是修改该用户的密码
+	 	- 如果用户不存在, 则是创建该用户。
+	 	- 有点奇怪,为何mysql8中,加上  [identified by '新密码'] 执行失败。但是当为修改密码的执行,虽然语句执行提示失败,但是却导致原密码、新密码都无法登录。（周六再测试一下）
+	 登录位置:
+	  - `*`: 任意地址都可以访问,开放所有(本地|远程)的连接
+	  - `localhost`: 允许本地localhost连接
+	  - `127.0.0.1`: 限定固定的ip连接,可以为 内网ip、外网ip
 ```bash
 # 例子exp:
-mysql> grant select,insert,update,alter,create,index,create view on xyz.* to identified by 'apem999'@'%';
+mysql> grant select,insert,update,alter,create,index,create view on xyz.* to 'apem999'@'%';
 ```
 
 2. 刷新权限操作结果。
@@ -4104,7 +4113,7 @@ Query OK, 0 rows affected (0.00 sec)
 ```
 
 3.回收/撤销 用户的权限: revoke
-	+ revoke [权限1],[权限2],[权限3],... on 数据库.对象名 to 用户名 @ 登录位置
+	+ revoke [权限1],[权限2],[权限3],... on 数据库.对象名 to '用户名'@'登录位置'
 
 4.用户权限操作后都需要刷新才生效: `flush privileges;`
 
